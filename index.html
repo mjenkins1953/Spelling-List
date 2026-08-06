@@ -520,12 +520,17 @@
     // Neither continuous mode nor the chained-restart workaround has a
     // built-in "stop after a pause" behavior, so restart a short timer on
     // every result and finalize once the person has been quiet for a beat.
+    // iOS needs a longer allowance: each auto-restart between letters costs
+    // a couple hundred ms of mic warm-up time on top of the person's
+    // natural pause, so a tight timer there cuts people off mid-word.
+    const SILENCE_TIMEOUT_MS = isIOS ? 3200 : 1200;
+
     function resetSilenceTimer() {
       if (silenceTimer) clearTimeout(silenceTimer);
       silenceTimer = setTimeout(() => {
         finalize();
         recognition.stop();
-      }, 1200);
+      }, SILENCE_TIMEOUT_MS);
     }
     resetSilenceTimer();
 
@@ -574,18 +579,28 @@
         return;
       }
 
-      // Recognition stopped on its own without us asking (the WebKit
-      // quirk on iOS) but the person hasn't paused long enough to be
-      // finished — pick back up where we left off.
+      if (!isIOS) {
+        // On desktop/Android, continuous mode ending on its own before we
+        // asked it to is unusual — just treat it as done rather than
+        // attempting a restart that isn't needed on these platforms.
+        finalize();
+        return;
+      }
+
+      // iOS only: recognition stopped on its own (the WebKit quirk) but
+      // the person hasn't paused long enough to be finished — pick back
+      // up where we left off. A slightly longer pause here (vs. the bare
+      // minimum) gives the mic a moment to properly re-arm first.
       setTimeout(() => {
         if (session.shouldStop || handled) return;
         try {
           recognition.start();
           activeRecognition = session;
         } catch (err) {
+          console.warn('Mic restart failed:', err);
           finalize();
         }
-      }, 150);
+      }, 250);
     };
 
     recognition.start();
