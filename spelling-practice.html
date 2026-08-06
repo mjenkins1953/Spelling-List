@@ -483,8 +483,21 @@
     input.value = '';
 
     let finalText = '';
+    let silenceTimer = null;
+
+    // continuous mode has no built-in "stop after a pause" behavior,
+    // so restart a short timer on every result and auto-stop once
+    // the person has been quiet for a beat.
+    function resetSilenceTimer() {
+      if (silenceTimer) clearTimeout(silenceTimer);
+      silenceTimer = setTimeout(() => {
+        recognition.stop();
+      }, 1800);
+    }
+    resetSilenceTimer();
 
     recognition.onresult = (e) => {
+      resetSilenceTimer();
       let interimText = '';
       for (let i = e.resultIndex; i < e.results.length; i++) {
         // Spoken letters transcribe as separate "words" with spaces
@@ -506,6 +519,7 @@
     };
 
     recognition.onend = () => {
+      if (silenceTimer) clearTimeout(silenceTimer);
       micBtn.classList.remove('listening');
       if (activeRecognition === recognition) activeRecognition = null;
       checkAnswer(row, item, input, correctCell);
