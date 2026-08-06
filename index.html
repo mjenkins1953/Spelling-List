@@ -511,6 +511,7 @@
       if (handled) return;
       handled = true;
       session.shouldStop = true;
+      console.log('[mic] finalize() called, input value:', JSON.stringify(input.value));
       if (silenceTimer) clearTimeout(silenceTimer);
       micBtn.classList.remove('listening');
       checkAnswer(row, item, input, correctCell);
@@ -528,17 +529,20 @@
     function resetSilenceTimer() {
       if (silenceTimer) clearTimeout(silenceTimer);
       silenceTimer = setTimeout(() => {
+        console.log('[mic] silence timer elapsed (' + SILENCE_TIMEOUT_MS + 'ms) — finalizing');
         finalize();
         recognition.stop();
       }, SILENCE_TIMEOUT_MS);
     }
     resetSilenceTimer();
+    console.log('[mic] session started, isIOS =', isIOS);
 
     recognition.onresult = (e) => {
       resetSilenceTimer();
       let interimText = '';
       for (let i = e.resultIndex; i < e.results.length; i++) {
         const rawTranscript = e.results[i][0].transcript.trim();
+        console.log('[mic] onresult:', JSON.stringify(rawTranscript), 'isFinal:', e.results[i].isFinal);
 
         // On iOS, when the recognizer gets ambiguous or near-silent audio
         // (very common when parsing single spelled-out letters), it tends
@@ -547,7 +551,10 @@
         // result that's ONE of these words, and nothing else, as noise
         // rather than a real letter/word attempt.
         const isLikelyNoise = JUNK_WORDS.has(rawTranscript.toLowerCase());
-        if (isLikelyNoise) continue;
+        if (isLikelyNoise) {
+          console.log('[mic] filtered as junk word');
+          continue;
+        }
 
         // Spoken letters transcribe as separate "words" with spaces
         // between them (e.g. "s o b r i q u e t") — strip whitespace
@@ -563,6 +570,7 @@
     };
 
     recognition.onerror = (e) => {
+      console.log('[mic] onerror:', e.error);
       // "no-speech" and "aborted" are routine — they fire between chained
       // restarts on iOS and don't indicate an actual problem.
       if (e.error !== 'no-speech' && e.error !== 'aborted') {
@@ -572,6 +580,7 @@
     };
 
     recognition.onend = () => {
+      console.log('[mic] onend fired. shouldStop:', session.shouldStop, 'handled:', handled);
       if (activeRecognition === session) activeRecognition = null;
 
       if (session.shouldStop || handled) {
@@ -583,6 +592,7 @@
         // On desktop/Android, continuous mode ending on its own before we
         // asked it to is unusual — just treat it as done rather than
         // attempting a restart that isn't needed on these platforms.
+        console.log('[mic] desktop/Android: onend fired without our request — finalizing early');
         finalize();
         return;
       }
