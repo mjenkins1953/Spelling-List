@@ -484,15 +484,28 @@
 
     let finalText = '';
     let silenceTimer = null;
+    let handled = false;
+
+    // Finalize immediately ourselves rather than waiting on the browser's
+    // own onend event, which is noticeably slower in continuous mode.
+    function finalize() {
+      if (handled) return;
+      handled = true;
+      if (silenceTimer) clearTimeout(silenceTimer);
+      micBtn.classList.remove('listening');
+      checkAnswer(row, item, input, correctCell);
+      if (input.value.trim() !== '') focusNextRowInput(row);
+    }
 
     // continuous mode has no built-in "stop after a pause" behavior,
-    // so restart a short timer on every result and auto-stop once
+    // so restart a short timer on every result and finalize once
     // the person has been quiet for a beat.
     function resetSilenceTimer() {
       if (silenceTimer) clearTimeout(silenceTimer);
       silenceTimer = setTimeout(() => {
+        finalize();
         recognition.stop();
-      }, 1800);
+      }, 1200);
     }
     resetSilenceTimer();
 
@@ -519,11 +532,8 @@
     };
 
     recognition.onend = () => {
-      if (silenceTimer) clearTimeout(silenceTimer);
-      micBtn.classList.remove('listening');
       if (activeRecognition === recognition) activeRecognition = null;
-      checkAnswer(row, item, input, correctCell);
-      if (input.value.trim() !== '') focusNextRowInput(row);
+      finalize();
     };
 
     recognition.start();
