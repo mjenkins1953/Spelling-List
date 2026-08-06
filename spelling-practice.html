@@ -462,67 +462,29 @@
   const recognitionSupported = !!SpeechRecognitionAPI;
   if (!recognitionSupported) micSupportNote.classList.add('show');
 
-  // All iOS/iPadOS browsers (Chrome included) run on Apple's WebKit engine,
-  // whose "continuous" recognition mode is known to be unreliable — it can
-  // silently stop after only a word or two. Detect it so we can fall back
-  // to a chained single-utterance approach that simulates continuous
-  // listening by restarting recognition each time WebKit cuts it off early.
-  const isIOS = /iP(hone|od|ad)/.test(navigator.userAgent) ||
-    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-
   let activeRecognition = null;
 
   function startListening(row, item, input, correctCell, micBtn) {
     if (!recognitionSupported) return;
 
     if (activeRecognition) {
-      activeRecognition.shouldStop = true;
-      activeRecognition.recognition.stop();
+      activeRecognition.stop();
       return;
     }
 
     const recognition = new SpeechRecognitionAPI();
     recognition.lang = 'en-US';
+    recognition.interimResults = true;
     recognition.maxAlternatives = 1;
-    recognition.continuous = !isIOS;
-    recognition.interimResults = !isIOS;
+    recognition.continuous = true;
 
-    const session = { recognition, shouldStop: false };
-    activeRecognition = session;
-
+    activeRecognition = recognition;
     micBtn.classList.add('listening');
     input.value = '';
 
     let finalText = '';
-    let silenceTimer = null;
-    let handled = false;
-
-    // Finalize immediately ourselves rather than waiting on the browser's
-    // own onend event, which is noticeably slower in continuous mode.
-    function finalize() {
-      if (handled) return;
-      handled = true;
-      session.shouldStop = true;
-      if (silenceTimer) clearTimeout(silenceTimer);
-      micBtn.classList.remove('listening');
-      checkAnswer(row, item, input, correctCell);
-      if (input.value.trim() !== '') focusNextRowInput(row);
-    }
-
-    // Neither continuous mode nor the chained-restart workaround has a
-    // built-in "stop after a pause" behavior, so restart a short timer on
-    // every result and finalize once the person has been quiet for a beat.
-    function resetSilenceTimer() {
-      if (silenceTimer) clearTimeout(silenceTimer);
-      silenceTimer = setTimeout(() => {
-        finalize();
-        recognition.stop();
-      }, 1200);
-    }
-    resetSilenceTimer();
 
     recognition.onresult = (e) => {
-      resetSilenceTimer();
       let interimText = '';
       for (let i = e.resultIndex; i < e.results.length; i++) {
         // Spoken letters transcribe as separate "words" with spaces
@@ -538,35 +500,16 @@
       input.value = finalText + interimText;
     };
 
-    recognition.onerror = (e) => {
-      // "no-speech" and "aborted" are routine — they fire between chained
-      // restarts on iOS and don't indicate an actual problem.
-      if (e.error !== 'no-speech' && e.error !== 'aborted') {
-        micBtn.classList.add('mic-error');
-        setTimeout(() => micBtn.classList.remove('mic-error'), 1200);
-      }
+    recognition.onerror = () => {
+      micBtn.classList.add('mic-error');
+      setTimeout(() => micBtn.classList.remove('mic-error'), 1200);
     };
 
     recognition.onend = () => {
-      if (activeRecognition === session) activeRecognition = null;
-
-      if (session.shouldStop || handled) {
-        finalize();
-        return;
-      }
-
-      // Recognition stopped on its own without us asking (the WebKit
-      // quirk on iOS) but the person hasn't paused long enough to be
-      // finished — pick back up where we left off.
-      setTimeout(() => {
-        if (session.shouldStop || handled) return;
-        try {
-          recognition.start();
-          activeRecognition = session;
-        } catch (err) {
-          finalize();
-        }
-      }, 150);
+      micBtn.classList.remove('listening');
+      if (activeRecognition === recognition) activeRecognition = null;
+      checkAnswer(row, item, input, correctCell);
+      if (input.value.trim() !== '') focusNextRowInput(row);
     };
 
     recognition.start();
