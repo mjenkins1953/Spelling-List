@@ -172,7 +172,7 @@
   colgroup .col-def{ width: auto; }
   colgroup .col-phon{ width: 15%; }
   colgroup .col-hear{ width: 88px; }
-  colgroup .col-type{ width: 16%; }
+  colgroup .col-type{ width: 19%; }
   colgroup .col-correct{ width: 16%; }
 
   thead th{
@@ -265,8 +265,15 @@
     fill: currentColor;
   }
 
+  .type-cell-inner{
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
   .type-input{
     width: 100%;
+    min-width: 0;
     padding: 6px 8px;
     border: 1px solid var(--grid);
     border-radius: 4px;
@@ -281,6 +288,45 @@
   }
   .is-correct .type-input{ border-color: var(--correct-border); }
   .is-incorrect .type-input{ border-color: var(--incorrect-border); }
+
+  /* Fixed-size mic button, same sizing philosophy as Hear It: locked
+     dimensions so it never grows or shrinks with layout changes. */
+  .mic-btn{
+    flex: none;
+    width: 26px;
+    height: 26px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border-radius: 50%;
+    border: 1px solid var(--grid);
+    background: #fff;
+    color: #5B6472;
+    cursor: pointer;
+  }
+  .mic-btn:hover{ background: var(--row-alt); }
+  .mic-btn:focus-visible{ outline: 2px solid var(--accent-hover); outline-offset: 2px; }
+  .mic-btn:disabled{ opacity: 0.35; cursor: not-allowed; }
+  .mic-btn svg{
+    width: 13px;
+    height: 13px;
+    fill: currentColor;
+  }
+  .mic-btn.listening{
+    background: var(--incorrect-border);
+    border-color: var(--incorrect-border);
+    color: #fff;
+    animation: mic-pulse 1s ease-in-out infinite;
+  }
+  @keyframes mic-pulse{
+    0%, 100% { box-shadow: 0 0 0 0 rgba(178,59,59,0.45); }
+    50% { box-shadow: 0 0 0 5px rgba(178,59,59,0); }
+  }
+  .mic-btn.mic-error{
+    background: #FDEAEA;
+    border-color: var(--incorrect-border);
+  }
 
   .correct-cell{
     display: flex;
@@ -336,7 +382,7 @@
   <header>
     <div>
       <h1>Spelling Quiz</h1>
-      <p class="sub" id="totalCount">300 entries &middot; word hidden &mdash; listen, then type it</p>
+      <p class="sub" id="totalCount">300 entries &middot; word hidden &mdash; listen, then type or say it</p>
     </div>
     <div class="scoreboard">
       <span class="score-chip correct" id="correctChip">Correct: 0</span>
@@ -346,6 +392,7 @@
   </header>
 
   <p id="supportNote" class="support-note">Your browser doesn't support spoken pronunciation. Try Chrome, Edge, or Safari.</p>
+  <p id="micSupportNote" class="support-note">Your browser doesn't support voice input. Try Chrome or Edge for the microphone feature.</p>
 
   <div class="controls">
     <div class="search-box">
@@ -406,8 +453,67 @@
   const incorrectChip = document.getElementById('incorrectChip');
   const remainingChip = document.getElementById('remainingChip');
 
+  const micSupportNote = document.getElementById('micSupportNote');
+
   const speechSupported = 'speechSynthesis' in window;
   if (!speechSupported) supportNote.classList.add('show');
+
+  const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const recognitionSupported = !!SpeechRecognitionAPI;
+  if (!recognitionSupported) micSupportNote.classList.add('show');
+
+  let activeRecognition = null;
+
+  function startListening(row, item, input, correctCell, micBtn) {
+    if (!recognitionSupported) return;
+
+    if (activeRecognition) {
+      activeRecognition.stop();
+      return;
+    }
+
+    const recognition = new SpeechRecognitionAPI();
+    recognition.lang = 'en-US';
+    recognition.interimResults = true;
+    recognition.maxAlternatives = 1;
+    recognition.continuous = true;
+
+    activeRecognition = recognition;
+    micBtn.classList.add('listening');
+    input.value = '';
+
+    let finalText = '';
+
+    recognition.onresult = (e) => {
+      let interimText = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        // Spoken letters transcribe as separate "words" with spaces
+        // between them (e.g. "s o b r i q u e t") — strip whitespace
+        // so the letters run together as they would when typed.
+        const chunk = e.results[i][0].transcript.replace(/\s+/g, '');
+        if (e.results[i].isFinal) {
+          finalText += chunk;
+        } else {
+          interimText += chunk;
+        }
+      }
+      input.value = finalText + interimText;
+    };
+
+    recognition.onerror = () => {
+      micBtn.classList.add('mic-error');
+      setTimeout(() => micBtn.classList.remove('mic-error'), 1200);
+    };
+
+    recognition.onend = () => {
+      micBtn.classList.remove('listening');
+      if (activeRecognition === recognition) activeRecognition = null;
+      checkAnswer(row, item, input, correctCell);
+      if (input.value.trim() !== '') focusNextRowInput(row);
+    };
+
+    recognition.start();
+  }
 
   rateSlider.addEventListener('input', () => {
     rateVal.textContent = parseFloat(rateSlider.value).toFixed(2) + '\u00d7';
@@ -504,7 +610,12 @@
         </button>
       </td>
       <td class="cell-type">
-        <input class="type-input" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Type the spelling for row ${i + 1}">
+        <div class="type-cell-inner">
+          <input class="type-input" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Type the spelling for row ${i + 1}">
+          <button class="mic-btn" type="button" aria-label="Say the spelling for row ${i + 1}">
+            <svg viewBox="0 0 24 24"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-2.08A7 7 0 0 0 19 12h-2z"/></svg>
+          </button>
+        </div>
       </td>
       <td class="cell-correct">
         <div class="correct-cell"></div>
@@ -517,6 +628,7 @@
 
     const input = row.querySelector('.type-input');
     const correctCell = row.querySelector('.correct-cell');
+    const micBtn = row.querySelector('.mic-btn');
 
     input.addEventListener('blur', () => checkAnswer(row, item, input, correctCell));
     input.addEventListener('keydown', (e) => {
@@ -525,6 +637,15 @@
         checkAnswer(row, item, input, correctCell);
         focusNextRowInput(row);
       }
+    });
+
+    micBtn.disabled = !recognitionSupported;
+    micBtn.addEventListener('click', () => {
+      const wasListening = micBtn.classList.contains('listening');
+      startListening(row, item, input, correctCell, micBtn);
+      micBtn.setAttribute('aria-label', wasListening
+        ? `Say the spelling for row ${i + 1}`
+        : `Stop listening for row ${i + 1}`);
     });
 
     list.appendChild(row);
