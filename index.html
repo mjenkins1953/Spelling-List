@@ -169,11 +169,28 @@
   }
 
   colgroup .col-id{ width: 48px; }
+  colgroup .col-word{ width: 12%; }
   colgroup .col-def{ width: auto; }
   colgroup .col-phon{ width: 15%; }
   colgroup .col-hear{ width: 88px; }
   colgroup .col-type{ width: 19%; }
   colgroup .col-correct{ width: 16%; }
+
+  /* Word column is hidden by default (quiz mode); the Show/Hide Word
+     List button toggles a class on the table to reveal it. Hiding both
+     the <col> and every cell keeps the column from reserving space. */
+  .col-word,
+  th.col-word,
+  td.cell-word{ display: none; }
+  .show-words .col-word{ display: table-column; }
+  .show-words th.col-word,
+  .show-words td.cell-word{ display: table-cell; }
+  td.cell-word{
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.01em;
+    color: var(--ink);
+  }
 
   thead th{
     background: var(--header-bg);
@@ -383,7 +400,7 @@
     <div>
       <h1>Spelling Quiz</h1>
       <p class="sub" id="totalCount">300 entries &middot; word hidden &mdash; listen, then type or say it</p>
-      <p class="sub" id="buildVersion" style="margin-top:4px;opacity:0.55;">Build 2026-08-06-1257Z</p>
+      <p class="sub" id="buildVersion" style="margin-top:4px;opacity:0.55;">Build 2026-08-06-1338Z</p>
     </div>
     <div class="scoreboard">
       <span class="score-chip correct" id="correctChip">Correct: 0</span>
@@ -406,13 +423,15 @@
       <span id="rateVal">0.85&times;</span>
     </div>
     <button class="reset-btn" id="resetBtn" type="button">Reset Answers</button>
+    <button class="reset-btn" id="toggleWordsBtn" type="button">Show Word List</button>
     <span class="result-count" id="resultCount"></span>
   </div>
 
   <div class="sheet">
-    <table>
+    <table id="quizTable">
       <colgroup>
         <col class="col-id">
+        <col class="col-word">
         <col class="col-def">
         <col class="col-phon">
         <col class="col-hear">
@@ -422,6 +441,7 @@
       <thead>
         <tr>
           <th class="col-id">ID</th>
+          <th class="col-word">Word</th>
           <th>Definition</th>
           <th>Pronunciation</th>
           <th class="col-hear">Hear It</th>
@@ -437,7 +457,7 @@
 </div>
 
 <script>
-  console.log('[mic] BUILD VERSION: 2026-08-06-1257Z');
+  console.log('[mic] BUILD VERSION: 2026-08-06-1338Z');
 
   // Word data is kept in memory for lookups (Hear It, answer checking, search)
   // even though the Word column itself is not rendered in the table.
@@ -452,6 +472,8 @@
   const noResults = document.getElementById('noResults');
   const totalCount = document.getElementById('totalCount');
   const resetBtn = document.getElementById('resetBtn');
+  const toggleWordsBtn = document.getElementById('toggleWordsBtn');
+  const quizTable = document.getElementById('quizTable');
   const correctChip = document.getElementById('correctChip');
   const incorrectChip = document.getElementById('incorrectChip');
   const remainingChip = document.getElementById('remainingChip');
@@ -716,6 +738,7 @@
 
     row.innerHTML = `
       <td class="cell-id">${i + 1}</td>
+      <td class="cell-word">${item.word}</td>
       <td class="cell-def">${item.def}</td>
       <td class="cell-phon">${item.phon}</td>
       <td class="cell-hear">
@@ -792,6 +815,11 @@
       row.querySelector('.correct-cell').innerHTML = '';
     });
     updateScoreboard();
+  });
+
+  toggleWordsBtn.addEventListener('click', () => {
+    const nowShowing = quizTable.classList.toggle('show-words');
+    toggleWordsBtn.textContent = nowShowing ? 'Hide Word List' : 'Show Word List';
   });
 
   updateCount(words.length);
