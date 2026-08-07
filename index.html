@@ -108,6 +108,83 @@
     text-align: center;
   }
 
+  .instructions-link{
+    margin-top: 4px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.03em;
+    color: var(--accent);
+    text-decoration: underline;
+    cursor: pointer;
+  }
+  .instructions-link:hover{ color: var(--accent-hover); }
+  .instructions-link:focus-visible{
+    outline: 2px solid var(--accent-hover);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  .modal-overlay{
+    position: fixed;
+    inset: 0;
+    background: rgba(30, 39, 51, 0.45);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+  }
+  .modal-overlay.show{ display: flex; }
+
+  .modal-box{
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.25);
+    width: 100%;
+    max-width: 480px;
+    max-height: 75vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .modal-header{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--grid);
+    flex: none;
+  }
+  .modal-header h2{
+    font-family: 'Fraunces', serif;
+    font-size: 19px;
+    font-weight: 600;
+    margin: 0;
+    color: var(--ink);
+  }
+  .modal-close{
+    background: none;
+    border: none;
+    font-size: 22px;
+    line-height: 1;
+    color: #8892A0;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+  .modal-close:hover{ background: var(--page-bg); color: var(--ink); }
+
+  .modal-body{
+    padding: 16px 20px 22px;
+    overflow-y: auto;
+    font-size: 14.5px;
+    line-height: 1.6;
+    color: var(--ink);
+  }
+  .modal-body p{ margin: 0 0 12px; }
+  .modal-body p:last-child{ margin-bottom: 0; }
+
   footer{
     margin-top: 36px;
     font-family: 'IBM Plex Mono', monospace;
@@ -130,17 +207,115 @@
       <svg class="icon" viewBox="0 0 24 24"><path d="M4 4h16a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1zm1 2v12h14V6H5zm2 2h10v2H7V8zm0 4h10v2H7v-2zm0 4h6v2H7v-2z"/></svg>
       <span class="label">Word List</span>
       <span class="desc">Browse the full spreadsheet &amp; quiz</span>
+      <span class="instructions-link" role="button" tabindex="0" data-modal="wordlist">Instructions</span>
     </a>
 
     <a class="menu-card" href="flashcards.html">
       <svg class="icon" viewBox="0 0 24 24"><path d="M3 5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5zm2 0v14h6V5H5zm9 1a1 1 0 0 1 1-1h4a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-4a1 1 0 0 1-1-1V6zm2 1v10h3V8a1 1 0 0 0-1-1h-2z"/></svg>
       <span class="label">Flash Cards</span>
       <span class="desc">One random word at a time</span>
+      <span class="instructions-link" role="button" tabindex="0" data-modal="flashcards">Instructions</span>
     </a>
   </div>
 
   <footer>Macomb Township Senior Spellers</footer>
 
 </div>
+
+<div class="modal-overlay" id="instructionsOverlay">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 id="instructionsTitle">Instructions</h2>
+      <button class="modal-close" id="instructionsClose" type="button" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body" id="instructionsBody"></div>
+  </div>
+</div>
+
+<script>
+  // Placeholder content — real instructions to be filled in later.
+  const INSTRUCTIONS = {
+    wordlist: {
+      title: 'Word List Instructions',
+      body: `
+        <p><strong>Welcome to the Macomb Township Senior Spellers<br>Spelling Bee tools</strong></p>
+        <p>Use of this page is simple:</p>
+        <p>Click the "Hear It" button for a spoken version of the word you want to spell.</p>
+        <p>Place your cursor in the "Type It" box next to the "Hear It" button you clicked.</p>
+        <p>Type the word and press &lt;Enter&gt;.</p>
+        <p>The correct spelling of the word will appear in the "Correct Spelling" column.</p>
+        <p>If you spell the word correctly, the background of the row you are on will turn green. If you spell the word incorrectly, the background of the row you are on will turn red.</p>
+        <p>Correct and Incorrect answers will be tabulated at the top of the page along with how many words are remaining to be spelled.</p>
+        <p><strong>Helpful Functions</strong></p>
+        <p>Click the Reset Answers button to start over.</p>
+        <p>Click the "Hide Word List" to hide the "Word" column if you like.</p>
+        <p>Use the Speech rate slider to adjust the speed of the spoken word.</p>
+        <p>That's it. Have Fun!!!</p>
+      `
+    },
+    flashcards: {
+      title: 'Flash Cards Instructions',
+      body: `
+        <p><strong>Welcome to the Macomb Township Senior Spellers Spelling Bee tools</strong></p>
+        <p>Use of this page is simple:</p>
+        <p>Words are randomly selected and displayed for you to spell.</p>
+        <p>Click the "Hear It" button for a spoken version of the word you want to spell.</p>
+        <p>Place your cursor in the "Type It" box below the Definition.</p>
+        <p>Type the word and press Enter.</p>
+        <p>The correct spelling of the word will appear beneath the Type It box. If you spell the word correctly, the background of the flash card will turn green. If you spell the word incorrectly, the background of the flash card will turn red.</p>
+        <p>Correct and Incorrect answers will be tabulated at the bottom of the page along with how many words are remaining to be spelled and the percentage of words that were spelled correctly.</p>
+        <p>Click the Next Word button to advance.</p>
+        <p><strong>Helpful Functions</strong></p>
+        <p>Click the Reset button to start over.</p>
+        <p>Click the Show Word button to display the correct spelling of the word if you like.</p>
+        <p>Enter values in the From and Thru fields to concentrate on a specific section of the word list.</p>
+        <p>If you're stuck on a word, click the Next Word button near the top of the page to "pass" on that word. It will be returned to the pool and used again before you're finished.</p>
+        <p>After you've typed the word in the Type It box, review and click the Next Word button near the bottom of the page to advance to the next random word.</p>
+        <p>Your score will be tabulated at the bottom of the page.</p>
+        <p>That's it. Have Fun!!!</p>
+      `
+    }
+  };
+
+  const overlay = document.getElementById('instructionsOverlay');
+  const titleEl = document.getElementById('instructionsTitle');
+  const bodyEl = document.getElementById('instructionsBody');
+  const closeBtn = document.getElementById('instructionsClose');
+
+  function openInstructions(key) {
+    const content = INSTRUCTIONS[key];
+    if (!content) return;
+    titleEl.textContent = content.title;
+    bodyEl.innerHTML = content.body;
+    overlay.classList.add('show');
+  }
+
+  function closeInstructions() {
+    overlay.classList.remove('show');
+  }
+
+  document.querySelectorAll('.instructions-link').forEach((el) => {
+    el.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      openInstructions(el.dataset.modal);
+    });
+    el.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        e.stopPropagation();
+        openInstructions(el.dataset.modal);
+      }
+    });
+  });
+
+  closeBtn.addEventListener('click', closeInstructions);
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) closeInstructions();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && overlay.classList.contains('show')) closeInstructions();
+  });
+</script>
 </body>
 </html>
