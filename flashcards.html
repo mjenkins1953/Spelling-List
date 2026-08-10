@@ -591,6 +591,89 @@
     color: #8892A0;
     margin: 12px 0 4px;
   }
+
+  .retry-list{
+    text-align: left;
+    max-height: 60vh;
+    overflow-y: auto;
+    margin: 0 0 20px;
+    border: 1px solid var(--grid);
+    border-radius: 6px;
+  }
+  .retry-table{
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+  .retry-table col.col-def{ width: auto; }
+  .retry-table col.col-phon{ width: 22%; }
+  .retry-table col.col-hear{ width: 80px; }
+  .retry-table col.col-type{ width: 22%; }
+  .retry-table col.col-result{ width: 22%; }
+
+  .retry-table thead th{
+    background: var(--header-bg);
+    color: #F3F5F7;
+    text-align: left;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 8px 10px;
+    position: sticky;
+    top: 0;
+  }
+
+  .retry-table tbody td{
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--grid);
+    font-size: 13.5px;
+    vertical-align: middle;
+    word-wrap: break-word;
+  }
+  .retry-table tbody tr:nth-child(even) td{ background: var(--page-bg); }
+  .retry-table tbody tr.is-correct td{ background: var(--correct-bg); }
+  .retry-table tbody tr.is-incorrect td{ background: var(--incorrect-bg); }
+
+  .retry-phon{
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: #5B6472;
+  }
+  .retry-hear-btn{
+    flex: none;
+    width: 64px;
+    height: 26px;
+    padding: 0;
+    font-size: 9.5px;
+  }
+  .retry-type-input{
+    width: 100%;
+    padding: 6px 8px;
+    border: 1px solid var(--grid);
+    border-radius: 5px;
+    font-family: 'Source Sans 3', sans-serif;
+    font-size: 13.5px;
+    color: var(--ink);
+    background: #fff;
+  }
+  .retry-type-input:focus{
+    outline: 2px solid var(--accent);
+    outline-offset: -1px;
+  }
+  .retry-type-input:disabled{
+    background: #F4F6F8;
+    color: #5B6472;
+  }
+  .is-correct .retry-type-input{ border-color: var(--correct-border); }
+  .is-incorrect .retry-type-input{ border-color: var(--incorrect-border); }
+  .retry-result{
+    font-size: 13.5px;
+    font-weight: 600;
+  }
+  .is-correct .retry-result{ color: var(--correct-border); }
+  .is-incorrect .retry-result{ color: var(--incorrect-border); }
 </style>
 </head>
 <body>
@@ -679,6 +762,34 @@
       <div id="completeMissedBody"></div>
     </div>
     <button class="reset-btn" id="playAgainBtn" type="button">Play Again</button>
+    <button class="reset-btn" id="retryIncorrectBtn" type="button" style="display:none; margin-left:8px;">Retry Missed Words</button>
+  </div>
+
+  <div class="complete-panel" id="retryPanel">
+    <h2>Retry Missed Words</h2>
+    <p class="sub" style="margin-bottom:18px;">Type each word again for practice &mdash; this won't affect your score.</p>
+    <div class="retry-list">
+      <table class="retry-table">
+        <colgroup>
+          <col class="col-def">
+          <col class="col-phon">
+          <col class="col-hear">
+          <col class="col-type">
+          <col class="col-result">
+        </colgroup>
+        <thead>
+          <tr>
+            <th>Definition</th>
+            <th>Pronunciation</th>
+            <th>Hear It</th>
+            <th>Type It</th>
+            <th>Correct Spelling</th>
+          </tr>
+        </thead>
+        <tbody id="retryList"></tbody>
+      </table>
+    </div>
+    <button class="reset-btn" id="retryBackBtn" type="button" tabindex="-1">Back to Results</button>
   </div>
 
 </div>
@@ -731,6 +842,10 @@
   const completeMissedWrap = document.getElementById('completeMissedWrap');
   const completeMissedBody = document.getElementById('completeMissedBody');
   const playAgainBtn = document.getElementById('playAgainBtn');
+  const retryIncorrectBtn = document.getElementById('retryIncorrectBtn');
+  const retryPanel = document.getElementById('retryPanel');
+  const retryList = document.getElementById('retryList');
+  const retryBackBtn = document.getElementById('retryBackBtn');
   const missedModalOverlay = document.getElementById('missedModalOverlay');
   const missedModalBody = document.getElementById('missedModalBody');
   const missedModalClose = document.getElementById('missedModalClose');
@@ -904,8 +1019,10 @@
       if (missedWords.length > 0) {
         completeMissedBody.innerHTML = renderMissedRowsHtml();
         completeMissedWrap.style.display = '';
+        retryIncorrectBtn.style.display = '';
       } else {
         completeMissedWrap.style.display = 'none';
+        retryIncorrectBtn.style.display = 'none';
       }
       completePanel.classList.add('show');
       return;
@@ -963,7 +1080,7 @@
       fireFireworks();
     } else {
       incorrectCount++;
-      missedWords.push({ typed: typed, correct: currentItem.word });
+      missedWords.push({ typed: typed, correct: currentItem.word, item: currentItem });
       showSadFace();
     }
 
@@ -1177,6 +1294,76 @@
     updateWordHint();
   });
   playAgainBtn.addEventListener('click', () => startQuiz());
+
+  function openRetryPanel() {
+    retryList.innerHTML = '';
+    const rowInputs = [];
+
+    missedWords.forEach((m) => {
+      const item = m.item;
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>${item.def}</td>
+        <td class="retry-phon">${item.phon}</td>
+        <td>
+          <button class="play-btn retry-hear-btn" type="button">Hear It</button>
+        </td>
+        <td>
+          <input type="text" class="retry-type-input" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Type it&hellip;">
+        </td>
+        <td class="retry-result"></td>
+      `;
+
+      const hearBtnEl = row.querySelector('.retry-hear-btn');
+      hearBtnEl.disabled = !speechSupported;
+      hearBtnEl.addEventListener('click', () => speakWord(item.word));
+
+      const inputEl = row.querySelector('.retry-type-input');
+      const resultEl = row.querySelector('.retry-result');
+      let rowAnswered = false;
+      rowInputs.push(inputEl);
+
+      function checkRow() {
+        if (rowAnswered) return;
+        const typed = inputEl.value.trim();
+        if (typed === '') return;
+        rowAnswered = true;
+        inputEl.disabled = true;
+        const isCorrect = typed.toLowerCase() === item.word.trim().toLowerCase();
+        row.classList.add(isCorrect ? 'is-correct' : 'is-incorrect');
+        resultEl.innerHTML = (isCorrect ? '&#10003; ' : '&#10007; ') + item.word.toUpperCase();
+      }
+
+      function focusNextInput() {
+        const idx = rowInputs.indexOf(inputEl);
+        const next = rowInputs[idx + 1];
+        if (next) {
+          next.focus();
+          next.select();
+        }
+      }
+
+      inputEl.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          checkRow();
+          focusNextInput();
+        }
+      });
+      inputEl.addEventListener('blur', checkRow);
+
+      retryList.appendChild(row);
+    });
+
+    completePanel.classList.remove('show');
+    retryPanel.classList.add('show');
+  }
+
+  retryIncorrectBtn.addEventListener('click', openRetryPanel);
+  retryBackBtn.addEventListener('click', () => {
+    retryPanel.classList.remove('show');
+    completePanel.classList.add('show');
+  });
 
   // ---------- Hear It ----------
   function speakWord(word) {
