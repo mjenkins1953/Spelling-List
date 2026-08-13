@@ -127,6 +127,7 @@
     flex-direction: column;
     overflow: hidden;
   }
+  .modal-box.practice-box{ max-width: 760px; }
 
   .modal-header{
     display: flex;
@@ -222,6 +223,8 @@
     cursor: pointer;
   }
   .reset-btn:hover{ background: var(--page-bg); }
+  .reset-btn:disabled{ opacity: 0.4; cursor: not-allowed; }
+  .reset-btn:disabled:hover{ background: #fff; }
 
   .rate-row{
     display:flex;
@@ -592,14 +595,6 @@
     margin: 12px 0 4px;
   }
 
-  .retry-list{
-    text-align: left;
-    max-height: 60vh;
-    overflow-y: auto;
-    margin: 0 0 20px;
-    border: 1px solid var(--grid);
-    border-radius: 6px;
-  }
   .retry-table{
     width: 100%;
     border-collapse: collapse;
@@ -693,6 +688,7 @@
     <div class="controls-left">
       <button class="reset-btn" id="resetBtn" type="button">Reset</button>
       <button class="reset-btn" id="showWordBtn" type="button">Show Word</button>
+      <button class="reset-btn" id="practiceMissedBtn" type="button" disabled>Practice Missed Words</button>
       <div class="range-row">
         <div class="range-field">
           <label for="fromInput">From</label>
@@ -765,11 +761,29 @@
     <button class="reset-btn" id="retryIncorrectBtn" type="button" style="display:none; margin-left:8px;">Retry Missed Words</button>
   </div>
 
-  <div class="complete-panel" id="retryPanel">
-    <h2>Retry Missed Words</h2>
-    <p class="sub" style="margin-bottom:18px;">Type each word again for practice &mdash; this won't affect your score.</p>
-    <div class="retry-list">
-      <table class="retry-table">
+</div>
+
+<div class="fireworks-overlay" id="fireworksOverlay"></div>
+
+<div class="modal-overlay" id="missedModalOverlay">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2>Misspelled Words</h2>
+      <button class="modal-close" id="missedModalClose" type="button" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body" id="missedModalBody"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="practiceOverlay">
+  <div class="modal-box practice-box">
+    <div class="modal-header">
+      <h2>Practice Missed Words</h2>
+      <button class="modal-close" id="practiceModalClose" type="button" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p class="sub" style="margin:0 0 14px;">Retype each word as many times as you like &mdash; this won't change your score.</p>
+      <table class="retry-table" id="practiceTable">
         <colgroup>
           <col class="col-def">
           <col class="col-phon">
@@ -786,23 +800,9 @@
             <th>Correct Spelling</th>
           </tr>
         </thead>
-        <tbody id="retryList"></tbody>
+        <tbody id="practiceModalList"></tbody>
       </table>
     </div>
-    <button class="reset-btn" id="retryBackBtn" type="button" tabindex="-1">Back to Results</button>
-  </div>
-
-</div>
-
-<div class="fireworks-overlay" id="fireworksOverlay"></div>
-
-<div class="modal-overlay" id="missedModalOverlay">
-  <div class="modal-box">
-    <div class="modal-header">
-      <h2>Misspelled Words</h2>
-      <button class="modal-close" id="missedModalClose" type="button" aria-label="Close">&times;</button>
-    </div>
-    <div class="modal-body" id="missedModalBody"></div>
   </div>
 </div>
 
@@ -843,12 +843,13 @@
   const completeMissedBody = document.getElementById('completeMissedBody');
   const playAgainBtn = document.getElementById('playAgainBtn');
   const retryIncorrectBtn = document.getElementById('retryIncorrectBtn');
-  const retryPanel = document.getElementById('retryPanel');
-  const retryList = document.getElementById('retryList');
-  const retryBackBtn = document.getElementById('retryBackBtn');
   const missedModalOverlay = document.getElementById('missedModalOverlay');
   const missedModalBody = document.getElementById('missedModalBody');
   const missedModalClose = document.getElementById('missedModalClose');
+  const practiceMissedBtn = document.getElementById('practiceMissedBtn');
+  const practiceOverlay = document.getElementById('practiceOverlay');
+  const practiceModalClose = document.getElementById('practiceModalClose');
+  const practiceModalList = document.getElementById('practiceModalList');
 
   const speechSupported = 'speechSynthesis' in window;
   if (!speechSupported) supportNote.classList.add('show');
@@ -924,6 +925,7 @@
     // that's currently displayed but hasn't been checked yet still counts
     // as remaining.
     remainingChip.textContent = 'Remaining: ' + (deck.length - correctCount - incorrectCount);
+    practiceMissedBtn.disabled = missedWords.length === 0;
   }
 
   function startQuiz() {
@@ -1295,12 +1297,38 @@
   });
   playAgainBtn.addEventListener('click', () => startQuiz());
 
-  function openRetryPanel() {
-    retryList.innerHTML = '';
-    const rowInputs = [];
-
+  // Practice pulls from missedWords, which can hold multiple entries for
+  // the same word if it was missed more than once — dedupe down to one
+  // practice row per distinct word.
+  function getUniqueMissedItems() {
+    const seen = new Set();
+    const unique = [];
     missedWords.forEach((m) => {
-      const item = m.item;
+      const key = m.item.word.toLowerCase();
+      if (!seen.has(key)) {
+        seen.add(key);
+        unique.push(m.item);
+      }
+    });
+    return unique;
+  }
+
+  // Rebuilds the practice list fresh from whatever's currently in
+  // missedWords, so it can be opened at any point during the quiz (not
+  // just after finishing the deck) and reopened as many times as wanted.
+  function openPracticeModal() {
+    practiceModalList.innerHTML = '';
+    const uniqueItems = getUniqueMissedItems();
+
+    if (uniqueItems.length === 0) {
+      practiceModalList.innerHTML = '<tr><td colspan="5"><p class="modal-empty" style="margin:0;">No misspelled words yet.</p></td></tr>';
+      practiceOverlay.classList.add('show');
+      return;
+    }
+
+    const practiceInputs = [];
+
+    uniqueItems.forEach((item) => {
       const row = document.createElement('tr');
       row.innerHTML = `
         <td>${item.def}</td>
@@ -1320,23 +1348,25 @@
 
       const inputEl = row.querySelector('.retry-type-input');
       const resultEl = row.querySelector('.retry-result');
-      let rowAnswered = false;
-      rowInputs.push(inputEl);
+      practiceInputs.push(inputEl);
 
-      function checkRow() {
-        if (rowAnswered) return;
+      // Practice rows never lock after an answer — retype and recheck
+      // the same word as many times as needed.
+      function checkPracticeRow() {
         const typed = inputEl.value.trim();
-        if (typed === '') return;
-        rowAnswered = true;
-        inputEl.disabled = true;
+        row.classList.remove('is-correct', 'is-incorrect');
+        if (typed === '') {
+          resultEl.innerHTML = '';
+          return;
+        }
         const isCorrect = typed.toLowerCase() === item.word.trim().toLowerCase();
         row.classList.add(isCorrect ? 'is-correct' : 'is-incorrect');
         resultEl.innerHTML = (isCorrect ? '&#10003; ' : '&#10007; ') + item.word.toUpperCase();
       }
 
-      function focusNextInput() {
-        const idx = rowInputs.indexOf(inputEl);
-        const next = rowInputs[idx + 1];
+      function focusNextPracticeInput() {
+        const idx = practiceInputs.indexOf(inputEl);
+        const next = practiceInputs[idx + 1];
         if (next) {
           next.focus();
           next.select();
@@ -1346,23 +1376,30 @@
       inputEl.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
           e.preventDefault();
-          checkRow();
-          focusNextInput();
+          checkPracticeRow();
+          focusNextPracticeInput();
         }
       });
-      inputEl.addEventListener('blur', checkRow);
+      inputEl.addEventListener('blur', checkPracticeRow);
 
-      retryList.appendChild(row);
+      practiceModalList.appendChild(row);
     });
 
-    completePanel.classList.remove('show');
-    retryPanel.classList.add('show');
+    practiceOverlay.classList.add('show');
   }
 
-  retryIncorrectBtn.addEventListener('click', openRetryPanel);
-  retryBackBtn.addEventListener('click', () => {
-    retryPanel.classList.remove('show');
-    completePanel.classList.add('show');
+  function closePracticeModal() {
+    practiceOverlay.classList.remove('show');
+  }
+
+  practiceMissedBtn.addEventListener('click', openPracticeModal);
+  retryIncorrectBtn.addEventListener('click', openPracticeModal);
+  practiceModalClose.addEventListener('click', closePracticeModal);
+  practiceOverlay.addEventListener('click', (e) => {
+    if (e.target === practiceOverlay) closePracticeModal();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && practiceOverlay.classList.contains('show')) closePracticeModal();
   });
 
   // ---------- Hear It ----------

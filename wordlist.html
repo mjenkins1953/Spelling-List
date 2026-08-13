@@ -395,6 +395,145 @@
   }
   .support-note.show{ display:block; }
 
+  .reset-btn:disabled{ opacity: 0.4; cursor: not-allowed; }
+  .reset-btn:disabled:hover{ background: #fff; }
+
+  .modal-overlay{
+    position: fixed;
+    inset: 0;
+    background: rgba(30, 39, 51, 0.45);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+  }
+  .modal-overlay.show{ display: flex; }
+
+  .modal-box{
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.25);
+    width: 100%;
+    max-width: 480px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .modal-box.practice-box{ max-width: 760px; }
+
+  .modal-header{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--grid);
+    flex: none;
+  }
+  .modal-header h2{
+    font-family: 'Fraunces', serif;
+    font-size: 19px;
+    font-weight: 600;
+    margin: 0;
+    color: var(--ink);
+  }
+  .modal-close{
+    background: none;
+    border: none;
+    font-size: 22px;
+    line-height: 1;
+    color: #8892A0;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+  .modal-close:hover{ background: var(--page-bg); color: var(--ink); }
+
+  .modal-body{
+    padding: 16px 20px 22px;
+    overflow-y: auto;
+  }
+
+  .practice-empty{
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12.5px;
+    color: #8892A0;
+    padding: 20px 0;
+    text-align: center;
+  }
+
+  .retry-table{
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+  .retry-table col.col-def{ width: auto; }
+  .retry-table col.col-phon{ width: 22%; }
+  .retry-table col.col-hear{ width: 80px; }
+  .retry-table col.col-type{ width: 22%; }
+  .retry-table col.col-result{ width: 22%; }
+
+  .retry-table thead th{
+    background: var(--header-bg);
+    color: #F3F5F7;
+    text-align: left;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 8px 10px;
+    position: sticky;
+    top: 0;
+  }
+
+  .retry-table tbody td{
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--grid);
+    font-size: 13.5px;
+    vertical-align: middle;
+    word-wrap: break-word;
+  }
+  .retry-table tbody tr:nth-child(even) td{ background: var(--row-alt); }
+  .retry-table tbody tr.is-correct td{ background: var(--correct-bg); }
+  .retry-table tbody tr.is-incorrect td{ background: var(--incorrect-bg); }
+
+  .retry-phon{
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: #5B6472;
+  }
+  .retry-hear-btn{
+    flex: none;
+    width: 64px;
+    height: 26px;
+    padding: 0;
+    font-size: 9.5px;
+  }
+  .retry-type-input{
+    width: 100%;
+    padding: 6px 8px;
+    border: 1px solid var(--grid);
+    border-radius: 5px;
+    font-family: 'Source Sans 3', sans-serif;
+    font-size: 13.5px;
+    color: var(--ink);
+    background: #fff;
+  }
+  .retry-type-input:focus{
+    outline: 2px solid var(--accent);
+    outline-offset: -1px;
+  }
+  .is-correct .retry-type-input{ border-color: var(--correct-border); }
+  .is-incorrect .retry-type-input{ border-color: var(--incorrect-border); }
+  .retry-result{
+    font-size: 13.5px;
+    font-weight: 600;
+  }
+  .is-correct .retry-result{ color: var(--correct-border); }
+  .is-incorrect .retry-result{ color: var(--incorrect-border); }
+
   @media (max-width: 760px){
     .sheet{ overflow-x: auto; }
     table{ min-width: 720px; }
@@ -427,6 +566,7 @@
     </div>
     <button class="reset-btn" id="resetBtn" type="button">Reset Answers</button>
     <button class="reset-btn" id="toggleWordsBtn" type="button">Hide Word List</button>
+    <button class="reset-btn" id="practiceMissedBtn" type="button" disabled>Practice Missed Words</button>
     <div class="scoreboard">
       <span class="score-chip correct" id="correctChip">Correct: 0</span>
       <span class="score-chip incorrect" id="incorrectChip">Incorrect: 0</span>
@@ -467,6 +607,37 @@
 
 </div>
 
+<div class="modal-overlay" id="practiceOverlay">
+  <div class="modal-box practice-box">
+    <div class="modal-header">
+      <h2>Practice Missed Words</h2>
+      <button class="modal-close" id="practiceClose" type="button" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p class="sub" style="margin:0 0 14px;">Retype each word as many times as you like &mdash; this won't change your score above.</p>
+      <table class="retry-table" id="practiceTable">
+        <colgroup>
+          <col class="col-def">
+          <col class="col-phon">
+          <col class="col-hear">
+          <col class="col-type">
+          <col class="col-result">
+        </colgroup>
+        <thead>
+          <tr>
+            <th>Definition</th>
+            <th>Pronunciation</th>
+            <th>Hear It</th>
+            <th>Type It</th>
+            <th>Correct Spelling</th>
+          </tr>
+        </thead>
+        <tbody id="practiceList"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
 <script>
   console.log('[mic] BUILD VERSION: 2026-08-07-0005Z');
 
@@ -488,6 +659,10 @@
   const correctChip = document.getElementById('correctChip');
   const incorrectChip = document.getElementById('incorrectChip');
   const remainingChip = document.getElementById('remainingChip');
+  const practiceMissedBtn = document.getElementById('practiceMissedBtn');
+  const practiceOverlay = document.getElementById('practiceOverlay');
+  const practiceClose = document.getElementById('practiceClose');
+  const practiceList = document.getElementById('practiceList');
 
   const micSupportNote = document.getElementById('micSupportNote');
 
@@ -708,6 +883,7 @@
     correctChip.textContent = 'Correct: ' + correct;
     incorrectChip.textContent = 'Incorrect: ' + incorrect;
     remainingChip.textContent = 'Remaining: ' + remaining;
+    practiceMissedBtn.disabled = incorrect === 0;
   }
 
   function checkAnswer(row, item, input, correctCell) {
@@ -831,6 +1007,97 @@
   toggleWordsBtn.addEventListener('click', () => {
     const nowShowing = quizTable.classList.toggle('show-words');
     toggleWordsBtn.textContent = nowShowing ? 'Hide Word List' : 'Show Word List';
+  });
+
+  // Rebuilds the practice list fresh from whichever rows are currently
+  // flagged incorrect, so reopening the modal always reflects the latest
+  // missed words and can be repeated an unlimited number of times.
+  function openPracticeModal() {
+    practiceList.innerHTML = '';
+    const missedItems = rows
+      .map((row, i) => ({ row, item: words[i] }))
+      .filter(({ row }) => row.classList.contains('is-incorrect'));
+
+    if (missedItems.length === 0) {
+      practiceList.innerHTML = '<tr><td colspan="5" class="practice-empty">No misspelled words yet.</td></tr>';
+      practiceOverlay.classList.add('show');
+      return;
+    }
+
+    const practiceInputs = [];
+
+    missedItems.forEach(({ item }) => {
+      const practiceRow = document.createElement('tr');
+      practiceRow.innerHTML = `
+        <td>${item.def}</td>
+        <td class="retry-phon">${item.phon}</td>
+        <td>
+          <button class="play-btn retry-hear-btn" type="button">Hear It</button>
+        </td>
+        <td>
+          <input type="text" class="retry-type-input" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Type it&hellip;">
+        </td>
+        <td class="retry-result"></td>
+      `;
+
+      const hearBtnEl = practiceRow.querySelector('.retry-hear-btn');
+      hearBtnEl.disabled = !speechSupported;
+      hearBtnEl.addEventListener('click', () => speakWord(item.word, practiceRow));
+
+      const inputEl = practiceRow.querySelector('.retry-type-input');
+      const resultEl = practiceRow.querySelector('.retry-result');
+      practiceInputs.push(inputEl);
+
+      // Unlike the main table, practice rows never lock after an answer —
+      // the whole point is letting the word be retried as many times as
+      // needed, so every Enter/blur just re-checks the current input.
+      function checkPracticeRow() {
+        const typed = inputEl.value.trim();
+        practiceRow.classList.remove('is-correct', 'is-incorrect');
+        if (typed === '') {
+          resultEl.innerHTML = '';
+          return;
+        }
+        const isCorrect = typed.toLowerCase() === item.word.trim().toLowerCase();
+        practiceRow.classList.add(isCorrect ? 'is-correct' : 'is-incorrect');
+        resultEl.innerHTML = (isCorrect ? '&#10003; ' : '&#10007; ') + item.word.toUpperCase();
+      }
+
+      function focusNextPracticeInput() {
+        const idx = practiceInputs.indexOf(inputEl);
+        const next = practiceInputs[idx + 1];
+        if (next) {
+          next.focus();
+          next.select();
+        }
+      }
+
+      inputEl.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          checkPracticeRow();
+          focusNextPracticeInput();
+        }
+      });
+      inputEl.addEventListener('blur', checkPracticeRow);
+
+      practiceList.appendChild(practiceRow);
+    });
+
+    practiceOverlay.classList.add('show');
+  }
+
+  function closePracticeModal() {
+    practiceOverlay.classList.remove('show');
+  }
+
+  practiceMissedBtn.addEventListener('click', openPracticeModal);
+  practiceClose.addEventListener('click', closePracticeModal);
+  practiceOverlay.addEventListener('click', (e) => {
+    if (e.target === practiceOverlay) closePracticeModal();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && practiceOverlay.classList.contains('show')) closePracticeModal();
   });
 
   updateCount(words.length);
