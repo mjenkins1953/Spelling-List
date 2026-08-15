@@ -947,11 +947,15 @@
       </td>
     `;
 
+    const input = row.querySelector('.type-input');
+
     const btn = row.querySelector('.play-btn');
     btn.disabled = !speechSupported;
-    btn.addEventListener('click', () => speakWord(item.word, row));
+    btn.addEventListener('click', () => {
+      speakWord(item.word, row);
+      input.focus();
+    });
 
-    const input = row.querySelector('.type-input');
     const correctCell = row.querySelector('.correct-cell');
     const micBtn = row.querySelector('.mic-btn');
 
@@ -1040,11 +1044,15 @@
         <td class="retry-result"></td>
       `;
 
+      const inputEl = practiceRow.querySelector('.retry-type-input');
+
       const hearBtnEl = practiceRow.querySelector('.retry-hear-btn');
       hearBtnEl.disabled = !speechSupported;
-      hearBtnEl.addEventListener('click', () => speakWord(item.word, practiceRow));
+      hearBtnEl.addEventListener('click', () => {
+        speakWord(item.word, practiceRow);
+        inputEl.focus();
+      });
 
-      const inputEl = practiceRow.querySelector('.retry-type-input');
       const resultEl = practiceRow.querySelector('.retry-result');
       practiceInputs.push(inputEl);
 
