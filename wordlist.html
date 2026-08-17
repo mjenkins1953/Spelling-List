@@ -844,13 +844,49 @@
 
   let currentRow = null;
 
+  // Plain-text respellings fed to the speech engine instead of the real word,
+  // for words whose spelling reliably trips up TTS grapheme-to-phoneme rules
+  // (Greek/Latin "ch" read as English "ch", silent French endings, non-silent
+  // final "e", etc.). Keys must match the "word" field exactly.
+  const pronunciationOverrides = {
+    "Sobriquet": "so-bri-kay",
+    "Chalcedony": "kal-sed-uh-nee",
+    "Squacquerone": "skwahk-keh-roh-nay",
+    "Cinchona": "sin-koh-nuh",
+    "Dirigiste": "deer-ee-zheest",
+    "Argot": "ar-goh",
+    "Brachycephalic": "brak-ee-suh-fal-ik",
+    "Anemochory": "uh-nem-uh-kor-ee",
+    "Inchoate": "in-koh-it",
+    "Autochthonous": "aw-tok-thuh-nuhs",
+    "Eschatology": "es-kuh-tol-uh-jee",
+    "Synecdoche": "si-nek-duh-kee",
+    "Mnemonics": "ni-mon-iks",
+    "Echidna": "uh-kid-nuh",
+    "Petrichor": "pet-ri-kor",
+    "Pantechnicon": "pan-tek-ni-kon",
+    "Trachyte": "tray-kite",
+    "Ischiocerite": "is-kee-oss-uh-rite",
+    "Maile": "my-leh",
+    "Kneippism": "nye-piz-uhm",
+    "Lychnoscope": "lik-nuh-skope",
+    "Aichmophobia": "ake-moh-foh-bee-uh",
+    "Oxyrhynch": "ok-see-rink",
+    "Rhynchophorous": "rin-kof-uh-ruhs",
+    "Aufgabe": "owf-gah-buh",
+    "Passepied": "pas-pee-ay",
+    "Doughty": "dow-tee",
+    "Zucchini": "zoo-kee-nee",
+    "Holishkes": "huh-lish-kuhs"
+  };
+
   function speakWord(word, row) {
     if (!speechSupported) return;
     window.speechSynthesis.cancel();
 
     if (currentRow) currentRow.classList.remove('speaking');
 
-    const utterance = new SpeechSynthesisUtterance(word);
+    const utterance = new SpeechSynthesisUtterance(pronunciationOverrides[word] || word);
     utterance.rate = parseFloat(rateSlider.value);
     utterance.pitch = 1;
     utterance.lang = 'en-US';
