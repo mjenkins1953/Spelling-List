@@ -139,6 +139,29 @@
     width: 110px;
   }
 
+  .goto-row{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    color: #5B6472;
+  }
+  .goto-row input[type="number"]{
+    width: 64px;
+    padding: 6px 8px;
+    border: 1px solid var(--grid);
+    border-radius: 4px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    color: var(--ink);
+    background: #fff;
+  }
+  .goto-row input[type="number"]:focus{
+    outline: 2px solid var(--accent);
+    outline-offset: -1px;
+  }
+
   .reset-btn{
     font-family: 'IBM Plex Mono', monospace;
     font-size: 11px;
@@ -559,6 +582,10 @@
       <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27a6.47 6.47 0 0 0 1.57-4.23 6.5 6.5 0 1 0-6.5 6.5 6.47 6.47 0 0 0 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9z"/></svg>
       <input type="text" id="searchInput" placeholder="Search definition&hellip;" autocomplete="off">
     </div>
+    <div class="goto-row">
+      <label for="gotoInput">Go to #</label>
+      <input type="number" id="gotoInput" min="1" max="300" placeholder="1-300" autocomplete="off">
+    </div>
     <div class="rate-row">
       <label for="rateSlider">Speech rate</label>
       <input type="range" id="rateSlider" min="0.5" max="1.3" step="0.1" value="0.85">
@@ -603,7 +630,7 @@
     <div class="no-results" id="noResults">No words match your search.</div>
   </div>
 
-  <p class="sub" id="buildVersion" style="margin-top:8px; text-align:right; opacity:0.55;">Build 2026-08-19-1314Z</p>
+  <p class="sub" id="buildVersion" style="margin-top:8px; text-align:right; opacity:0.55;">Build 2026-08-19-1340Z</p>
 
 </div>
 
@@ -639,7 +666,7 @@
 </div>
 
 <script>
-  console.log('[mic] BUILD VERSION: 2026-08-19-1314Z');
+  console.log('[mic] BUILD VERSION: 2026-08-19-1340Z');
 
   // Word data is kept in memory for lookups (Hear It, answer checking, search)
   // even though the Word column itself is not rendered in the table.
@@ -650,6 +677,7 @@
   const rateVal = document.getElementById('rateVal');
   const supportNote = document.getElementById('supportNote');
   const searchInput = document.getElementById('searchInput');
+  const gotoInput = document.getElementById('gotoInput');
   const resultCount = document.getElementById('resultCount');
   const noResults = document.getElementById('noResults');
   const totalCount = document.getElementById('totalCount');
@@ -1060,6 +1088,18 @@
       if (match) visible++;
     });
     updateCount(visible);
+  });
+
+  gotoInput.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    const num = parseInt(gotoInput.value, 10);
+    if (!Number.isInteger(num) || num < 1 || num > rows.length) return;
+    const targetRow = rows[num - 1];
+    targetRow.classList.remove('hidden-row');
+    targetRow.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    const input = targetRow.querySelector('.type-input');
+    if (input) input.focus();
+    gotoInput.value = '';
   });
 
   resetBtn.addEventListener('click', () => {
