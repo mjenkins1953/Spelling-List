@@ -139,7 +139,7 @@
     width: 110px;
   }
 
-  .goto-row{
+  .range-row{
     display:flex;
     align-items:center;
     gap:8px;
@@ -147,8 +147,8 @@
     font-size: 11.5px;
     color: #5B6472;
   }
-  .goto-row input[type="number"]{
-    width: 64px;
+  .range-row input[type="text"]{
+    width: 90px;
     padding: 6px 8px;
     border: 1px solid var(--grid);
     border-radius: 4px;
@@ -157,7 +157,7 @@
     color: var(--ink);
     background: #fff;
   }
-  .goto-row input[type="number"]:focus{
+  .range-row input[type="text"]:focus{
     outline: 2px solid var(--accent);
     outline-offset: -1px;
   }
@@ -582,9 +582,9 @@
       <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27a6.47 6.47 0 0 0 1.57-4.23 6.5 6.5 0 1 0-6.5 6.5 6.47 6.47 0 0 0 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9z"/></svg>
       <input type="text" id="searchInput" placeholder="Search definition&hellip;" autocomplete="off">
     </div>
-    <div class="goto-row">
-      <label for="gotoInput">Go to #</label>
-      <input type="number" id="gotoInput" min="1" max="300" placeholder="1-300" autocomplete="off">
+    <div class="range-row">
+      <label for="rangeInput">Filter #</label>
+      <input type="text" id="rangeInput" placeholder="e.g. 25-75" autocomplete="off">
     </div>
     <div class="rate-row">
       <label for="rateSlider">Speech rate</label>
@@ -630,7 +630,7 @@
     <div class="no-results" id="noResults">No words match your search.</div>
   </div>
 
-  <p class="sub" id="buildVersion" style="margin-top:8px; text-align:right; opacity:0.55;">Build 2026-08-19-1340Z</p>
+  <p class="sub" id="buildVersion" style="margin-top:8px; text-align:right; opacity:0.55;">Build 2026-08-19-1430Z</p>
 
 </div>
 
@@ -666,7 +666,7 @@
 </div>
 
 <script>
-  console.log('[mic] BUILD VERSION: 2026-08-19-1340Z');
+  console.log('[mic] BUILD VERSION: 2026-08-19-1430Z');
 
   // Word data is kept in memory for lookups (Hear It, answer checking, search)
   // even though the Word column itself is not rendered in the table.
@@ -677,7 +677,7 @@
   const rateVal = document.getElementById('rateVal');
   const supportNote = document.getElementById('supportNote');
   const searchInput = document.getElementById('searchInput');
-  const gotoInput = document.getElementById('gotoInput');
+  const rangeInput = document.getElementById('rangeInput');
   const resultCount = document.getElementById('resultCount');
   const noResults = document.getElementById('noResults');
   const totalCount = document.getElementById('totalCount');
@@ -1079,28 +1079,31 @@
     noResults.classList.toggle('show', visible === 0);
   }
 
-  searchInput.addEventListener('input', () => {
+  function parseRange(raw) {
+    const nums = (raw.match(/\d+/g) || []).map(Number);
+    if (nums.length === 0) return null;
+    if (nums.length === 1) return { lo: nums[0], hi: nums[0] };
+    const [a, b] = nums;
+    return a <= b ? { lo: a, hi: b } : { lo: b, hi: a };
+  }
+
+  function applyFilters() {
     const q = searchInput.value.trim().toLowerCase();
+    const range = parseRange(rangeInput.value);
     let visible = 0;
-    rows.forEach(row => {
-      const match = q === '' || row.dataset.search.includes(q);
+    rows.forEach((row, i) => {
+      const id = i + 1;
+      const textMatch = q === '' || row.dataset.search.includes(q);
+      const rangeMatch = !range || (id >= range.lo && id <= range.hi);
+      const match = textMatch && rangeMatch;
       row.classList.toggle('hidden-row', !match);
       if (match) visible++;
     });
     updateCount(visible);
-  });
+  }
 
-  gotoInput.addEventListener('keydown', (e) => {
-    if (e.key !== 'Enter') return;
-    const num = parseInt(gotoInput.value, 10);
-    if (!Number.isInteger(num) || num < 1 || num > rows.length) return;
-    const targetRow = rows[num - 1];
-    targetRow.classList.remove('hidden-row');
-    targetRow.scrollIntoView({ block: 'center', behavior: 'smooth' });
-    const input = targetRow.querySelector('.type-input');
-    if (input) input.focus();
-    gotoInput.value = '';
-  });
+  searchInput.addEventListener('input', applyFilters);
+  rangeInput.addEventListener('input', applyFilters);
 
   resetBtn.addEventListener('click', () => {
     rows.forEach(row => {
