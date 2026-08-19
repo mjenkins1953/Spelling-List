@@ -630,7 +630,7 @@
     <div class="no-results" id="noResults">No words match your search.</div>
   </div>
 
-  <p class="sub" id="buildVersion" style="margin-top:8px; text-align:right; opacity:0.55;">Build 2026-08-19-1430Z</p>
+  <p class="sub" id="buildVersion" style="margin-top:8px; text-align:right; opacity:0.55;">Build 2026-08-19-2033Z</p>
 
 </div>
 
@@ -666,7 +666,7 @@
 </div>
 
 <script>
-  console.log('[mic] BUILD VERSION: 2026-08-19-1430Z');
+  console.log('[mic] BUILD VERSION: 2026-08-19-2033Z');
 
   // Word data is kept in memory for lookups (Hear It, answer checking, search)
   // even though the Word column itself is not rendered in the table.
@@ -730,7 +730,12 @@
 
     const recognition = new SpeechRecognitionAPI();
     recognition.lang = 'en-US';
-    recognition.maxAlternatives = 1;
+    // Ask for multiple hypotheses per result, not just the top-ranked one.
+    // The recognizer's #1 pick for a finalized result often swaps a rare
+    // word for a more common one it's more statistically confident about
+    // (e.g. "apophasis" -> "Apophis") — see onresult below, which prefers
+    // whichever alternative actually matches the word being tested.
+    recognition.maxAlternatives = 5;
     recognition.continuous = !isIOS;
     recognition.interimResults = !isIOS;
 
@@ -786,13 +791,16 @@
     resetSilenceTimer();
     console.log('[mic] session started, isIOS =', isIOS);
 
+    const targetWord = item.word.trim().toLowerCase().replace(/\s+/g, '');
+
     recognition.onresult = (e) => {
       gotFirstResult = true;
       resetSilenceTimer();
       let interimText = '';
       for (let i = e.resultIndex; i < e.results.length; i++) {
-        const rawTranscript = e.results[i][0].transcript.trim();
-        console.log('[mic] onresult:', JSON.stringify(rawTranscript), 'isFinal:', e.results[i].isFinal);
+        const result = e.results[i];
+        const rawTranscript = result[0].transcript.trim();
+        console.log('[mic] onresult:', JSON.stringify(rawTranscript), 'isFinal:', result.isFinal);
 
         // On iOS, when the recognizer gets ambiguous or near-silent audio
         // (very common when parsing single spelled-out letters), it tends
@@ -806,11 +814,26 @@
           continue;
         }
 
+        // The recognizer's top-ranked alternative for a rare/obscure word
+        // often gets swapped for a more common one during finalization
+        // (e.g. "apophasis" -> "Apophis"). Since we already know the word
+        // being tested, prefer whichever alternative actually matches it
+        // over blindly trusting alternative #1.
+        let bestTranscript = rawTranscript;
+        for (let j = 1; j < result.length; j++) {
+          const candidate = result[j].transcript.trim();
+          if (candidate.replace(/\s+/g, '').toLowerCase() === targetWord) {
+            console.log('[mic] alternative', j, 'matches target word, using it instead:', JSON.stringify(candidate));
+            bestTranscript = candidate;
+            break;
+          }
+        }
+
         // Spoken letters transcribe as separate "words" with spaces
         // between them (e.g. "s o b r i q u e t") — strip whitespace
         // so the letters run together as they would when typed.
-        const chunk = rawTranscript.replace(/\s+/g, '');
-        if (e.results[i].isFinal) {
+        const chunk = bestTranscript.replace(/\s+/g, '');
+        if (result.isFinal) {
           finalText += chunk;
         } else {
           interimText += chunk;
