@@ -630,7 +630,7 @@
     <div class="no-results" id="noResults">No words match your search.</div>
   </div>
 
-  <p class="sub" id="buildVersion" style="margin-top:8px; text-align:right; opacity:0.55;">Build 2026-08-20-1245Z</p>
+  <p class="sub" id="buildVersion" style="margin-top:8px; text-align:right; opacity:0.55;">Build 2026-08-20-1249Z</p>
 
 </div>
 
@@ -666,7 +666,7 @@
 </div>
 
 <script>
-  console.log('[mic] BUILD VERSION: 2026-08-20-1245Z');
+  console.log('[mic] BUILD VERSION: 2026-08-20-1249Z');
 
   // Word data is kept in memory for lookups (Hear It, answer checking, search)
   // even though the Word column itself is not rendered in the table.
@@ -874,16 +874,36 @@
       // the person hasn't paused long enough to be finished — pick back
       // up where we left off. A slightly longer pause here (vs. the bare
       // minimum) gives the mic a moment to properly re-arm first.
-      setTimeout(() => {
+      //
+      // The restart itself can fail if it's attempted before the device's
+      // audio session has fully released from the just-ended one — this
+      // seems to need more headroom on iPad than iPhone, and is the most
+      // likely cause of getting cut off mid-word: a single failed restart
+      // used to give up immediately. Retry with increasing delays instead
+      // of finalizing on the first hiccup.
+      let restartAttempt = 0;
+      const RESTART_DELAYS_MS = [350, 600, 900];
+
+      function attemptRestart() {
         if (session.shouldStop || handled) return;
-        try {
-          recognition.start();
-          activeRecognition = session;
-        } catch (err) {
-          console.warn('Mic restart failed:', err);
-          finalize();
-        }
-      }, 250);
+        setTimeout(() => {
+          if (session.shouldStop || handled) return;
+          try {
+            recognition.start();
+            activeRecognition = session;
+          } catch (err) {
+            restartAttempt++;
+            console.warn('[mic] restart attempt', restartAttempt, 'failed:', err);
+            if (restartAttempt < RESTART_DELAYS_MS.length) {
+              attemptRestart();
+            } else {
+              console.warn('[mic] giving up after', restartAttempt, 'restart attempts');
+              finalize();
+            }
+          }
+        }, RESTART_DELAYS_MS[restartAttempt]);
+      }
+      attemptRestart();
     };
 
     recognition.start();
