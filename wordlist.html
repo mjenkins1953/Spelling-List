@@ -95,6 +95,13 @@
     flex-wrap: wrap;
     margin: 0 0 14px;
   }
+  .controls.hidden{ display: none; }
+
+  .config-toggle-row{
+    display:flex;
+    justify-content: flex-end;
+    margin: 0 0 8px;
+  }
 
   .search-box{
     position: relative;
@@ -577,7 +584,11 @@
   <p id="supportNote" class="support-note">Your browser doesn't support spoken pronunciation. Try Chrome, Edge, or Safari.</p>
   <p id="micSupportNote" class="support-note">Your browser doesn't support voice input. Try Chrome or Edge for the microphone feature.</p>
 
-  <div class="controls">
+  <div class="config-toggle-row">
+    <button class="reset-btn" id="configToggleBtn" type="button">Hide Configuration</button>
+  </div>
+
+  <div class="controls" id="controlsPanel">
     <div class="search-box">
       <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27a6.47 6.47 0 0 0 1.57-4.23 6.5 6.5 0 1 0-6.5 6.5 6.47 6.47 0 0 0 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9z"/></svg>
       <input type="text" id="searchInput" placeholder="Search definition&hellip;" autocomplete="off">
@@ -630,7 +641,7 @@
     <div class="no-results" id="noResults">No words match your search.</div>
   </div>
 
-  <p class="sub" id="buildVersion" style="margin-top:8px; text-align:right; opacity:0.55;">Build 2026-08-20-2144Z</p>
+  <p class="sub" id="buildVersion" style="margin-top:8px; text-align:right; opacity:0.55;">Build 2026-08-20-2154Z</p>
 
 </div>
 
@@ -666,7 +677,7 @@
 </div>
 
 <script>
-  console.log('[mic] BUILD VERSION: 2026-08-20-2144Z');
+  console.log('[mic] BUILD VERSION: 2026-08-20-2154Z');
 
   // Word data is kept in memory for lookups (Hear It, answer checking, search)
   // even though the Word column itself is not rendered in the table.
@@ -683,6 +694,8 @@
   const totalCount = document.getElementById('totalCount');
   const resetBtn = document.getElementById('resetBtn');
   const toggleWordsBtn = document.getElementById('toggleWordsBtn');
+  const configToggleBtn = document.getElementById('configToggleBtn');
+  const controlsPanel = document.getElementById('controlsPanel');
   const quizTable = document.getElementById('quizTable');
   const correctChip = document.getElementById('correctChip');
   const incorrectChip = document.getElementById('incorrectChip');
@@ -1179,6 +1192,11 @@
   toggleWordsBtn.addEventListener('click', () => {
     const nowShowing = quizTable.classList.toggle('show-words');
     toggleWordsBtn.textContent = nowShowing ? 'Hide Word List' : 'Show Word List';
+  });
+
+  configToggleBtn.addEventListener('click', () => {
+    const nowHidden = controlsPanel.classList.toggle('hidden');
+    configToggleBtn.textContent = nowHidden ? 'Show Configuration' : 'Hide Configuration';
   });
 
   // Rebuilds the practice list fresh from whichever rows are currently
