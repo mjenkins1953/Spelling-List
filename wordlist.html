@@ -97,10 +97,8 @@
   }
   .controls.hidden{ display: none; }
 
-  .config-toggle-row{
-    display:flex;
-    justify-content: flex-end;
-    margin: 0 0 14px;
+  .config-toggle-btn{
+    margin-left: auto;
   }
 
   .scoreboard-row{
@@ -611,10 +609,6 @@
     <button class="reset-btn" id="practiceMissedBtn" type="button" disabled>Practice Missed Words</button>
   </div>
 
-  <div class="config-toggle-row">
-    <button class="reset-btn" id="configToggleBtn" type="button">Hide Configuration</button>
-  </div>
-
   <div class="scoreboard-row">
     <div class="scoreboard">
       <span class="score-chip correct" id="correctChip">Correct: 0</span>
@@ -623,6 +617,7 @@
       <span class="score-chip" id="percentChip">Percent Correct: 0%</span>
     </div>
     <span class="result-count" id="resultCount"></span>
+    <button class="reset-btn config-toggle-btn" id="configToggleBtn" type="button">Hide Configuration</button>
   </div>
 
 
@@ -653,7 +648,7 @@
     <div class="no-results" id="noResults">No words match your search.</div>
   </div>
 
-  <p class="sub" id="buildVersion" style="margin-top:8px; text-align:right; opacity:0.55;">Build 2026-08-20-2200Z</p>
+  <p class="sub" id="buildVersion" style="margin-top:8px; text-align:right; opacity:0.55;">Build 2026-08-20-2202Z</p>
 
 </div>
 
@@ -689,7 +684,7 @@
 </div>
 
 <script>
-  console.log('[mic] BUILD VERSION: 2026-08-20-2200Z');
+  console.log('[mic] BUILD VERSION: 2026-08-20-2202Z');
 
   // Word data is kept in memory for lookups (Hear It, answer checking, search)
   // even though the Word column itself is not rendered in the table.
