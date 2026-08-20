@@ -607,20 +607,20 @@
     <table id="quizTable">
       <colgroup>
         <col class="col-id">
+        <col class="col-word">
         <col class="col-def">
         <col class="col-phon">
         <col class="col-hear">
-        <col class="col-word">
         <col class="col-type">
         <col class="col-correct">
       </colgroup>
       <thead>
         <tr>
           <th class="col-id">ID</th>
+          <th class="col-word">Word</th>
           <th>Definition</th>
           <th>Pronunciation</th>
           <th class="col-hear">Hear It</th>
-          <th class="col-word">Word</th>
           <th>Type It</th>
           <th>Correct Spelling</th>
         </tr>
@@ -630,7 +630,7 @@
     <div class="no-results" id="noResults">No words match your search.</div>
   </div>
 
-  <p class="sub" id="buildVersion" style="margin-top:8px; text-align:right; opacity:0.55;">Build 2026-08-20-1249Z</p>
+  <p class="sub" id="buildVersion" style="margin-top:8px; text-align:right; opacity:0.55;">Build 2026-08-20-2139Z</p>
 
 </div>
 
@@ -666,7 +666,7 @@
 </div>
 
 <script>
-  console.log('[mic] BUILD VERSION: 2026-08-20-1249Z');
+  console.log('[mic] BUILD VERSION: 2026-08-20-2139Z');
 
   // Word data is kept in memory for lookups (Hear It, answer checking, search)
   // even though the Word column itself is not rendered in the table.
@@ -1078,6 +1078,7 @@
 
     row.innerHTML = `
       <td class="cell-id">${i + 1}</td>
+      <td class="cell-word">${item.word}</td>
       <td class="cell-def">${item.def}</td>
       <td class="cell-phon">${item.phon}</td>
       <td class="cell-hear">
@@ -1086,7 +1087,6 @@
           Hear It
         </button>
       </td>
-      <td class="cell-word">${item.word}</td>
       <td class="cell-type">
         <div class="type-cell-inner">
           <input class="type-input" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Type the spelling for row ${i + 1}">
