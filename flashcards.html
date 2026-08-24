@@ -225,6 +225,12 @@
   .reset-btn:hover{ background: var(--page-bg); }
   .reset-btn:disabled{ opacity: 0.4; cursor: not-allowed; }
   .reset-btn:disabled:hover{ background: #fff; }
+  .reset-btn.active{
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  .reset-btn.active:hover{ background: var(--accent-hover); }
 
   .rate-row{
     display:flex;
@@ -699,6 +705,7 @@
           <input type="number" id="thruInput" min="1" max="300" value="300">
         </div>
         <button class="reset-btn" id="skipWordBtn" type="button">Next Word</button>
+        <button class="reset-btn" id="autoHearBtn" type="button">Auto Hear</button>
       </div>
     </div>
     <div class="rate-row">
@@ -819,6 +826,8 @@
   const fromInput = document.getElementById('fromInput');
   const thruInput = document.getElementById('thruInput');
   const skipWordBtn = document.getElementById('skipWordBtn');
+  const autoHearBtn = document.getElementById('autoHearBtn');
+  let autoHearEnabled = false;
   const correctChip = document.getElementById('correctChip');
   const incorrectChip = document.getElementById('incorrectChip');
   const percentChip = document.getElementById('percentChip');
@@ -1242,7 +1251,18 @@
 
   nextBtn.addEventListener('click', () => loadNextWord());
 
-  skipWordBtn.addEventListener('click', () => skipCurrentWord());
+  skipWordBtn.addEventListener('click', () => {
+    skipCurrentWord();
+    if (autoHearEnabled && currentItem && !completePanel.classList.contains('show')) {
+      speakWord(currentItem.word);
+    }
+  });
+
+  autoHearBtn.addEventListener('click', () => {
+    autoHearEnabled = !autoHearEnabled;
+    autoHearBtn.textContent = autoHearEnabled ? 'Auto Quiet' : 'Auto Hear';
+    autoHearBtn.classList.toggle('active', autoHearEnabled);
+  });
 
   resetBtn.addEventListener('click', () => startQuiz());
 
