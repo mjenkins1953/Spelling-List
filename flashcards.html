@@ -1249,13 +1249,20 @@
     }
   });
 
-  nextBtn.addEventListener('click', () => loadNextWord());
-
-  skipWordBtn.addEventListener('click', () => {
-    skipCurrentWord();
+  function speakAfterAdvance() {
     if (autoHearEnabled && currentItem && !completePanel.classList.contains('show')) {
       speakWord(currentItem.word);
     }
+  }
+
+  nextBtn.addEventListener('click', () => {
+    loadNextWord();
+    speakAfterAdvance();
+  });
+
+  skipWordBtn.addEventListener('click', () => {
+    skipCurrentWord();
+    speakAfterAdvance();
   });
 
   autoHearBtn.addEventListener('click', () => {
