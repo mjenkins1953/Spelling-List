@@ -212,7 +212,7 @@
     table-layout: fixed;
   }
 
-  colgroup .col-id{ width: 48px; }
+  colgroup .col-id{ width: 64px; }
   colgroup .col-word{ width: calc(12% + 0.5in); }
   colgroup .col-def{ width: auto; }
   colgroup .col-phon{ width: 15%; }
@@ -253,6 +253,42 @@
   thead th:last-child{ border-right: none; }
   thead th.col-id{ text-align: center; }
   thead th.col-hear{ text-align: center; }
+
+  .th-inner{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+  }
+  .th-label{
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .col-move{
+    display: flex;
+    flex: none;
+    gap: 2px;
+  }
+  .col-move-btn{
+    flex: none;
+    width: 15px;
+    height: 15px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 3px;
+    background: rgba(255,255,255,0.14);
+    color: var(--header-text);
+    font-size: 10px;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .col-move-btn:hover{ background: rgba(255,255,255,0.3); }
+  .col-move-btn:focus-visible{ outline: 1px solid #fff; outline-offset: 1px; }
+  .col-move-btn:disabled{ opacity: 0.25; cursor: not-allowed; }
 
   tbody td{
     padding: 9px 12px;
@@ -633,7 +669,7 @@
         <col class="col-correct">
       </colgroup>
       <thead>
-        <tr>
+        <tr id="quizHeaderRow">
           <th class="col-id">ID</th>
           <th class="col-word">Word</th>
           <th>Definition</th>
@@ -1209,6 +1245,67 @@
     const nowHidden = controlsPanel.classList.toggle('hidden');
     configToggleBtn.textContent = nowHidden ? 'Show Configuration' : 'Hide Configuration';
   });
+
+  // Lets the user reorder table columns with header arrow buttons. Moving a
+  // column swaps its <col>, <th>, and every row's matching <td> together so
+  // the colgroup widths and cell contents stay aligned after the move.
+  (function setupColumnReordering() {
+    const headerRow = document.getElementById('quizHeaderRow');
+    const colgroupEl = quizTable.querySelector('colgroup');
+
+    Array.from(headerRow.children).forEach(th => {
+      const label = th.textContent.trim();
+      th.innerHTML = `
+        <span class="th-inner">
+          <span class="th-label">${label}</span>
+          <span class="col-move">
+            <button class="col-move-btn col-move-left" type="button" data-dir="-1" aria-label="Move ${label} column left">&#8249;</button>
+            <button class="col-move-btn col-move-right" type="button" data-dir="1" aria-label="Move ${label} column right">&#8250;</button>
+          </span>
+        </span>
+      `;
+    });
+
+    function moveColumn(th, dir) {
+      const headerCells = Array.from(headerRow.children);
+      const idx = headerCells.indexOf(th);
+      const newIdx = idx + dir;
+      if (newIdx < 0 || newIdx >= headerCells.length) return;
+
+      const refTh = dir === 1 ? headerCells[newIdx].nextSibling : headerCells[newIdx];
+      headerRow.insertBefore(th, refTh);
+
+      const cols = Array.from(colgroupEl.children);
+      const col = cols[idx];
+      const refCol = dir === 1 ? cols[newIdx].nextSibling : cols[newIdx];
+      colgroupEl.insertBefore(col, refCol);
+
+      Array.from(list.children).forEach(row => {
+        const cells = Array.from(row.children);
+        const td = cells[idx];
+        const refTd = dir === 1 ? cells[newIdx].nextSibling : cells[newIdx];
+        row.insertBefore(td, refTd);
+      });
+
+      updateMoveButtons();
+    }
+
+    function updateMoveButtons() {
+      const headerCells = Array.from(headerRow.children);
+      headerCells.forEach((cell, i) => {
+        cell.querySelector('.col-move-left').disabled = (i === 0);
+        cell.querySelector('.col-move-right').disabled = (i === headerCells.length - 1);
+      });
+    }
+
+    headerRow.addEventListener('click', (e) => {
+      const btn = e.target.closest('.col-move-btn');
+      if (!btn || btn.disabled) return;
+      moveColumn(btn.closest('th'), Number(btn.dataset.dir));
+    });
+
+    updateMoveButtons();
+  })();
 
   // Rebuilds the practice list fresh from whichever rows are currently
   // flagged incorrect, so reopening the modal always reflects the latest
