@@ -274,41 +274,11 @@
   thead th.col-id{ text-align: center; }
   thead th.col-hear{ text-align: center; }
 
-  .th-inner{
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 6px;
-  }
   .th-label{
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .col-move{
-    display: flex;
-    flex: none;
-    gap: 2px;
-  }
-  .col-move-btn{
-    flex: none;
-    width: 15px;
-    height: 15px;
-    padding: 0;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border: none;
-    border-radius: 3px;
-    background: rgba(255,255,255,0.14);
-    color: var(--header-text);
-    font-size: 10px;
-    line-height: 1;
-    cursor: pointer;
-  }
-  .col-move-btn:hover{ background: rgba(255,255,255,0.3); }
-  .col-move-btn:focus-visible{ outline: 1px solid #fff; outline-offset: 1px; }
-  .col-move-btn:disabled{ opacity: 0.25; cursor: not-allowed; }
 
   thead th[draggable="true"]{ cursor: grab; }
   thead th.dragging{ opacity: 0.4; cursor: grabbing; }
@@ -714,7 +684,7 @@
     <div class="no-results" id="noResults">No words match your search.</div>
   </div>
 
-  <p class="sub" id="buildVersion" style="margin-top:8px; text-align:right; opacity:0.55;">Build 2026-08-26-2021Z</p>
+  <p class="sub" id="buildVersion" style="margin-top:8px; text-align:right; opacity:0.55;">Build 2026-08-26-2022Z</p>
 
 </div>
 
@@ -750,7 +720,7 @@
 </div>
 
 <script>
-  console.log('[mic] BUILD VERSION: 2026-08-26-2021Z');
+  console.log('[mic] BUILD VERSION: 2026-08-26-2022Z');
 
   // Word data is kept in memory for lookups (Hear It, answer checking, search)
   // even though the Word column itself is not rendered in the table.
@@ -1300,27 +1270,19 @@
     configToggleBtn.textContent = nowHidden ? 'Show Configuration' : 'Hide Configuration';
   });
 
-  // Lets the user reorder table columns either with header arrow buttons or
-  // by dragging a header to a new position. Moving a column relocates its
-  // <col>, <th>, and every row's matching <td> together so the colgroup
-  // widths and cell contents stay aligned after the move.
+  // Lets the user reorder table columns by dragging a header to a new
+  // position. Moving a column relocates its <col>, <th>, and every row's
+  // matching <td> together so the colgroup widths and cell contents stay
+  // aligned after the move.
   (function setupColumnReordering() {
     const headerRow = document.getElementById('quizHeaderRow');
     const colgroupEl = quizTable.querySelector('colgroup');
 
     Array.from(headerRow.children).forEach(th => {
       const label = th.textContent.trim();
-      th.innerHTML = `
-        <span class="th-inner">
-          <span class="th-label">${label}</span>
-          <span class="col-move">
-            <button class="col-move-btn col-move-left" type="button" draggable="false" data-dir="-1" aria-label="Move ${label} column left">&#8249;</button>
-            <button class="col-move-btn col-move-right" type="button" draggable="false" data-dir="1" aria-label="Move ${label} column right">&#8250;</button>
-          </span>
-        </span>
-      `;
+      th.innerHTML = `<span class="th-label">${label}</span>`;
       th.draggable = true;
-      th.setAttribute('aria-label', `${label} column — draggable, or use the arrow buttons to reorder`);
+      th.setAttribute('aria-label', `${label} column — drag to reorder`);
     });
 
     // Relocates the column at fromIdx to sit at toIdx, moving its <th>,
@@ -1337,31 +1299,13 @@
       relocate(headerRow, Array.from(headerRow.children));
       relocate(colgroupEl, Array.from(colgroupEl.children));
       Array.from(list.children).forEach(row => relocate(row, Array.from(row.children)));
-
-      updateMoveButtons();
     }
-
-    function updateMoveButtons() {
-      const headerCells = Array.from(headerRow.children);
-      headerCells.forEach((cell, i) => {
-        cell.querySelector('.col-move-left').disabled = (i === 0);
-        cell.querySelector('.col-move-right').disabled = (i === headerCells.length - 1);
-      });
-    }
-
-    headerRow.addEventListener('click', (e) => {
-      const btn = e.target.closest('.col-move-btn');
-      if (!btn || btn.disabled) return;
-      const th = btn.closest('th');
-      const idx = Array.from(headerRow.children).indexOf(th);
-      moveColumnByIndex(idx, idx + Number(btn.dataset.dir));
-    });
 
     let draggedTh = null;
 
     headerRow.addEventListener('dragstart', (e) => {
       const th = e.target.closest('th');
-      if (!th || e.target.closest('.col-move-btn')) { e.preventDefault(); return; }
+      if (!th) { e.preventDefault(); return; }
       draggedTh = th;
       e.dataTransfer.effectAllowed = 'move';
       e.dataTransfer.setData('text/plain', '');
@@ -1401,8 +1345,6 @@
       headerRow.querySelectorAll('.drag-over').forEach(cell => cell.classList.remove('drag-over'));
       draggedTh = null;
     });
-
-    updateMoveButtons();
   })();
 
   // Rebuilds the practice list fresh from whichever rows are currently
