@@ -93,7 +93,7 @@
     align-items:center;
     gap: 16px;
     flex-wrap: wrap;
-    margin: 0 0 14px;
+    margin: 18px 0 14px;
   }
   .controls.hidden{ display: none; }
 
@@ -155,13 +155,33 @@
   .range-row{
     display:flex;
     align-items:center;
-    gap:8px;
+    gap:10px;
     font-family: 'IBM Plex Mono', monospace;
     font-size: 11.5px;
     color: #5B6472;
   }
-  .range-row input[type="text"]{
-    width: 90px;
+  /* The "From"/"Thru" labels sit on their own line above each input, but
+     are taken out of normal flex flow (positioned absolutely) so the
+     field's in-flow height matches just the input box — that keeps this
+     row's align-items:center aligning against the input boxes rather than
+     the taller label+input stack. */
+  .range-field{
+    position: relative;
+  }
+  .range-field label{
+    position: absolute;
+    top: -16px;
+    left: 0;
+    width: 100%;
+    text-align: center;
+    font-size: 10px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #8892A0;
+    white-space: nowrap;
+  }
+  .range-row input[type="number"]{
+    width: 54px;
     padding: 6px 8px;
     border: 1px solid var(--grid);
     border-radius: 4px;
@@ -170,7 +190,7 @@
     color: var(--ink);
     background: #fff;
   }
-  .range-row input[type="text"]:focus{
+  .range-row input[type="number"]:focus{
     outline: 2px solid var(--accent);
     outline-offset: -1px;
   }
@@ -636,8 +656,14 @@
       <input type="text" id="searchInput" placeholder="Search definition&hellip;" autocomplete="off">
     </div>
     <div class="range-row">
-      <label for="rangeInput">Filter #</label>
-      <input type="text" id="rangeInput" placeholder="e.g. 25-75" autocomplete="off">
+      <div class="range-field">
+        <label for="fromInput">From</label>
+        <input type="number" id="fromInput" min="1" max="300" value="1">
+      </div>
+      <div class="range-field">
+        <label for="thruInput">Thru</label>
+        <input type="number" id="thruInput" min="1" max="300" value="300">
+      </div>
     </div>
     <div class="rate-row">
       <label for="rateSlider">Speech rate</label>
@@ -688,7 +714,7 @@
     <div class="no-results" id="noResults">No words match your search.</div>
   </div>
 
-  <p class="sub" id="buildVersion" style="margin-top:8px; text-align:right; opacity:0.55;">Build 2026-08-26-2015Z</p>
+  <p class="sub" id="buildVersion" style="margin-top:8px; text-align:right; opacity:0.55;">Build 2026-08-26-2021Z</p>
 
 </div>
 
@@ -724,7 +750,7 @@
 </div>
 
 <script>
-  console.log('[mic] BUILD VERSION: 2026-08-26-2015Z');
+  console.log('[mic] BUILD VERSION: 2026-08-26-2021Z');
 
   // Word data is kept in memory for lookups (Hear It, answer checking, search)
   // even though the Word column itself is not rendered in the table.
@@ -735,7 +761,8 @@
   const rateVal = document.getElementById('rateVal');
   const supportNote = document.getElementById('supportNote');
   const searchInput = document.getElementById('searchInput');
-  const rangeInput = document.getElementById('rangeInput');
+  const fromInput = document.getElementById('fromInput');
+  const thruInput = document.getElementById('thruInput');
   const resultCount = document.getElementById('resultCount');
   const noResults = document.getElementById('noResults');
   const totalCount = document.getElementById('totalCount');
@@ -1205,17 +1232,37 @@
     noResults.classList.toggle('show', visible === 0);
   }
 
-  function parseRange(raw) {
-    const nums = (raw.match(/\d+/g) || []).map(Number);
-    if (nums.length === 0) return null;
-    if (nums.length === 1) return { lo: nums[0], hi: nums[0] };
-    const [a, b] = nums;
-    return a <= b ? { lo: a, hi: b } : { lo: b, hi: a };
+  // Reads the From/Thru boxes as-is (no clamping) so filtering stays live
+  // while the user is still typing a number.
+  function getRange() {
+    const fromRaw = fromInput.value.trim();
+    const thruRaw = thruInput.value.trim();
+    if (fromRaw === '' && thruRaw === '') return null;
+    const from = fromRaw === '' ? 1 : parseInt(fromRaw, 10);
+    const thru = thruRaw === '' ? words.length : parseInt(thruRaw, 10);
+    if (isNaN(from) || isNaN(thru)) return null;
+    return from <= thru ? { lo: from, hi: thru } : { lo: thru, hi: from };
+  }
+
+  // Clamps the From/Thru boxes into [1, words.length] and swaps them if
+  // reversed, mirroring the flash card screen's range validation. Runs on
+  // blur/change rather than every keystroke so it doesn't fight typing.
+  function clampRangeInputs() {
+    let from = parseInt(fromInput.value, 10);
+    let thru = parseInt(thruInput.value, 10);
+    if (isNaN(from) || from < 1) from = 1;
+    if (from > words.length) from = words.length;
+    if (isNaN(thru) || thru > words.length) thru = words.length;
+    if (thru < 1) thru = 1;
+    if (from > thru) { const tmp = from; from = thru; thru = tmp; }
+    fromInput.value = from;
+    thruInput.value = thru;
+    applyFilters();
   }
 
   function applyFilters() {
     const q = searchInput.value.trim().toLowerCase();
-    const range = parseRange(rangeInput.value);
+    const range = getRange();
     let visible = 0;
     rows.forEach((row, i) => {
       const id = i + 1;
@@ -1229,7 +1276,10 @@
   }
 
   searchInput.addEventListener('input', applyFilters);
-  rangeInput.addEventListener('input', applyFilters);
+  fromInput.addEventListener('input', applyFilters);
+  thruInput.addEventListener('input', applyFilters);
+  fromInput.addEventListener('change', clampRangeInputs);
+  thruInput.addEventListener('change', clampRangeInputs);
 
   resetBtn.addEventListener('click', () => {
     rows.forEach(row => {
