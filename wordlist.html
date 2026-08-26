@@ -290,6 +290,10 @@
   .col-move-btn:focus-visible{ outline: 1px solid #fff; outline-offset: 1px; }
   .col-move-btn:disabled{ opacity: 0.25; cursor: not-allowed; }
 
+  thead th[draggable="true"]{ cursor: grab; }
+  thead th.dragging{ opacity: 0.4; cursor: grabbing; }
+  thead th.drag-over{ box-shadow: inset 2px 0 0 #fff, inset -2px 0 0 #fff; }
+
   tbody td{
     padding: 9px 12px;
     border-bottom: 1px solid var(--grid);
@@ -684,7 +688,7 @@
     <div class="no-results" id="noResults">No words match your search.</div>
   </div>
 
-  <p class="sub" id="buildVersion" style="margin-top:8px; text-align:right; opacity:0.55;">Build 2026-08-26-2012Z</p>
+  <p class="sub" id="buildVersion" style="margin-top:8px; text-align:right; opacity:0.55;">Build 2026-08-26-2015Z</p>
 
 </div>
 
@@ -720,7 +724,7 @@
 </div>
 
 <script>
-  console.log('[mic] BUILD VERSION: 2026-08-26-2012Z');
+  console.log('[mic] BUILD VERSION: 2026-08-26-2015Z');
 
   // Word data is kept in memory for lookups (Hear It, answer checking, search)
   // even though the Word column itself is not rendered in the table.
@@ -1246,9 +1250,10 @@
     configToggleBtn.textContent = nowHidden ? 'Show Configuration' : 'Hide Configuration';
   });
 
-  // Lets the user reorder table columns with header arrow buttons. Moving a
-  // column swaps its <col>, <th>, and every row's matching <td> together so
-  // the colgroup widths and cell contents stay aligned after the move.
+  // Lets the user reorder table columns either with header arrow buttons or
+  // by dragging a header to a new position. Moving a column relocates its
+  // <col>, <th>, and every row's matching <td> together so the colgroup
+  // widths and cell contents stay aligned after the move.
   (function setupColumnReordering() {
     const headerRow = document.getElementById('quizHeaderRow');
     const colgroupEl = quizTable.querySelector('colgroup');
@@ -1259,33 +1264,29 @@
         <span class="th-inner">
           <span class="th-label">${label}</span>
           <span class="col-move">
-            <button class="col-move-btn col-move-left" type="button" data-dir="-1" aria-label="Move ${label} column left">&#8249;</button>
-            <button class="col-move-btn col-move-right" type="button" data-dir="1" aria-label="Move ${label} column right">&#8250;</button>
+            <button class="col-move-btn col-move-left" type="button" draggable="false" data-dir="-1" aria-label="Move ${label} column left">&#8249;</button>
+            <button class="col-move-btn col-move-right" type="button" draggable="false" data-dir="1" aria-label="Move ${label} column right">&#8250;</button>
           </span>
         </span>
       `;
+      th.draggable = true;
+      th.setAttribute('aria-label', `${label} column — draggable, or use the arrow buttons to reorder`);
     });
 
-    function moveColumn(th, dir) {
-      const headerCells = Array.from(headerRow.children);
-      const idx = headerCells.indexOf(th);
-      const newIdx = idx + dir;
-      if (newIdx < 0 || newIdx >= headerCells.length) return;
+    // Relocates the column at fromIdx to sit at toIdx, moving its <th>,
+    // <col>, and every row's <td> together so they stay in sync.
+    function moveColumnByIndex(fromIdx, toIdx) {
+      if (fromIdx === toIdx) return;
 
-      const refTh = dir === 1 ? headerCells[newIdx].nextSibling : headerCells[newIdx];
-      headerRow.insertBefore(th, refTh);
+      function relocate(parent, items) {
+        const item = items[fromIdx];
+        const ref = fromIdx < toIdx ? items[toIdx].nextSibling : items[toIdx];
+        parent.insertBefore(item, ref);
+      }
 
-      const cols = Array.from(colgroupEl.children);
-      const col = cols[idx];
-      const refCol = dir === 1 ? cols[newIdx].nextSibling : cols[newIdx];
-      colgroupEl.insertBefore(col, refCol);
-
-      Array.from(list.children).forEach(row => {
-        const cells = Array.from(row.children);
-        const td = cells[idx];
-        const refTd = dir === 1 ? cells[newIdx].nextSibling : cells[newIdx];
-        row.insertBefore(td, refTd);
-      });
+      relocate(headerRow, Array.from(headerRow.children));
+      relocate(colgroupEl, Array.from(colgroupEl.children));
+      Array.from(list.children).forEach(row => relocate(row, Array.from(row.children)));
 
       updateMoveButtons();
     }
@@ -1301,7 +1302,54 @@
     headerRow.addEventListener('click', (e) => {
       const btn = e.target.closest('.col-move-btn');
       if (!btn || btn.disabled) return;
-      moveColumn(btn.closest('th'), Number(btn.dataset.dir));
+      const th = btn.closest('th');
+      const idx = Array.from(headerRow.children).indexOf(th);
+      moveColumnByIndex(idx, idx + Number(btn.dataset.dir));
+    });
+
+    let draggedTh = null;
+
+    headerRow.addEventListener('dragstart', (e) => {
+      const th = e.target.closest('th');
+      if (!th || e.target.closest('.col-move-btn')) { e.preventDefault(); return; }
+      draggedTh = th;
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', '');
+      th.classList.add('dragging');
+    });
+
+    headerRow.addEventListener('dragover', (e) => {
+      const th = e.target.closest('th');
+      if (!draggedTh || !th || th === draggedTh) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+    });
+
+    headerRow.addEventListener('dragenter', (e) => {
+      const th = e.target.closest('th');
+      if (!draggedTh || !th || th === draggedTh) return;
+      th.classList.add('drag-over');
+    });
+
+    headerRow.addEventListener('dragleave', (e) => {
+      const th = e.target.closest('th');
+      if (!th) return;
+      th.classList.remove('drag-over');
+    });
+
+    headerRow.addEventListener('drop', (e) => {
+      const th = e.target.closest('th');
+      headerRow.querySelectorAll('.drag-over').forEach(cell => cell.classList.remove('drag-over'));
+      if (!draggedTh || !th || th === draggedTh) return;
+      e.preventDefault();
+      const headerCells = Array.from(headerRow.children);
+      moveColumnByIndex(headerCells.indexOf(draggedTh), headerCells.indexOf(th));
+    });
+
+    headerRow.addEventListener('dragend', () => {
+      if (draggedTh) draggedTh.classList.remove('dragging');
+      headerRow.querySelectorAll('.drag-over').forEach(cell => cell.classList.remove('drag-over'));
+      draggedTh = null;
     });
 
     updateMoveButtons();
