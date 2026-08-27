@@ -543,23 +543,27 @@
   .is-incorrect .correct-cell .spelling-text{ color: var(--incorrect-border); }
 
   .next-btn{
-    margin-top: 22px;
-    width: 100%;
-    padding: 12px;
+    flex: none;
+    margin-left: auto;
+    height: 32px;
+    padding: 0 16px;
+    align-items: center;
+    justify-content: center;
     background: var(--header-bg);
     color: #fff;
     border: none;
-    border-radius: 6px;
+    border-radius: 5px;
     font-family: 'IBM Plex Mono', monospace;
-    font-size: 12.5px;
+    font-size: 11px;
     font-weight: 600;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.03em;
     text-transform: uppercase;
+    white-space: nowrap;
     cursor: pointer;
     display: none;
   }
   .next-btn:hover{ background: #1c2734; }
-  .next-btn.show{ display: block; }
+  .next-btn.show{ display: inline-flex; }
 
   .complete-panel{
     background: var(--card-bg);
@@ -725,6 +729,7 @@
         Hear It
       </button>
       <span class="definition-text" id="phonText" style="margin: 0;"></span>
+      <button class="next-btn" id="nextBtn" type="button">Next Word</button>
     </div>
 
     <p class="field-label">Definition</p>
@@ -744,7 +749,6 @@
       <div class="correct-cell" id="correctCell"></div>
     </div>
 
-    <button class="next-btn" id="nextBtn" type="button">Next Word &rarr;</button>
   </div>
 
   <div class="bottom-row">
@@ -1526,6 +1530,18 @@
     if (currentItem) speakWord(currentItem.word);
   });
   hearBtn.disabled = !speechSupported;
+
+  // Keep the Next Word button exactly as wide as the Hear It button so the
+  // two read as a matched pair on the same row.
+  function syncNextBtnWidth() {
+    const w = hearBtn.offsetWidth;
+    if (w) nextBtn.style.width = w + 'px';
+  }
+  syncNextBtnWidth();
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(syncNextBtnWidth);
+  }
+  window.addEventListener('resize', syncNextBtnWidth);
 
   startQuiz();
 </script>
