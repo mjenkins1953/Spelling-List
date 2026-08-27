@@ -506,17 +506,13 @@
     gap: 10px;
   }
 
-  .word-id-inline{
+  .word-id-top{
+    flex: none;
     font-family: 'Source Sans 3', sans-serif;
     font-size: 20px;
-    font-weight: 600;
-    color: #8892A0;
-    white-space: nowrap;
-    padding-right: 10px;
-    border-right: 1px solid var(--grid);
-  }
-  .word-id-inline span{
+    font-weight: 700;
     color: var(--ink);
+    white-space: nowrap;
   }
 
   .correct-cell{
@@ -525,9 +521,6 @@
     gap: 8px;
     font-size: 20px;
     font-weight: 600;
-  }
-  .correct-cell .correct-id{
-    color: #8892A0;
   }
   .correct-cell .flag{
     flex: none;
@@ -731,6 +724,7 @@
         <svg class="icon" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3a4.5 4.5 0 0 0-2.5-4.03v8.06A4.5 4.5 0 0 0 16.5 12z"/></svg>
         Hear It
       </button>
+      <span class="word-id-top" id="wordIdTop"></span>
       <span class="definition-text" id="phonText" style="margin: 0;"></span>
       <button class="next-btn" id="nextBtn" type="button">Next Word</button>
     </div>
@@ -748,7 +742,6 @@
 
     <p class="field-label">Correct Spelling</p>
     <div class="correct-row">
-      <span class="word-id-inline" id="wordIdInline" style="display:none;"><span id="wordIdText"></span></span>
       <div class="correct-cell" id="correctCell"></div>
     </div>
 
@@ -761,7 +754,7 @@
       <span class="score-chip" id="percentChip">Correct %: 0.0%</span>
       <span class="score-chip" id="remainingChip">Remaining: 300</span>
     </div>
-    <p class="sub" id="buildVersion" style="margin:0; opacity:0.55;">Build 2026-08-27-1201Z</p>
+    <p class="sub" id="buildVersion" style="margin:0; opacity:0.55;">Build 2026-08-27-1204Z</p>
   </div>
 
   <div class="complete-panel" id="completePanel">
@@ -847,8 +840,7 @@
   const typeInput = document.getElementById('typeInput');
   const micBtn = document.getElementById('micBtn');
   const micSupportNote = document.getElementById('micSupportNote');
-  const wordIdInline = document.getElementById('wordIdInline');
-  const wordIdText = document.getElementById('wordIdText');
+  const wordIdTop = document.getElementById('wordIdTop');
   const correctCell = document.getElementById('correctCell');
   const fxContainer = document.getElementById('fxContainer');
   const fireworksOverlay = document.getElementById('fireworksOverlay');
@@ -962,8 +954,8 @@
   }
 
   function updateWordHint() {
-    // controls both the Word ID line and the pre-answer word reveal
-    wordIdInline.style.display = showWordMode ? '' : 'none';
+    // controls the pre-answer word reveal (the Word ID sits up top and is
+    // always visible)
 
     // Only overrides the Correct Spelling display before the word has
     // been checked — once answered, the flagged correct/incorrect
@@ -1054,7 +1046,7 @@
 
     defText.textContent = currentItem.def;
     phonText.textContent = currentItem.phon;
-    wordIdText.textContent = currentWordId;
+    wordIdTop.textContent = currentWordId;
     typeInput.value = '';
     typeInput.disabled = false;
     quizCard.classList.remove('is-correct', 'is-incorrect');
@@ -1104,7 +1096,6 @@
 
     correctCell.innerHTML = `
       <span class="flag">${isCorrect ? '&#10003;' : '&#10007;'}</span>
-      <span class="correct-id">${currentWordId}</span>
       <span class="spelling-text">${currentItem.word.toUpperCase()}</span>
     `;
 
