@@ -684,7 +684,7 @@
     <div class="no-results" id="noResults">No words match your search.</div>
   </div>
 
-  <p class="sub" id="buildVersion" style="margin-top:8px; text-align:right; opacity:0.55;">Build 2026-08-27-1144Z</p>
+  <p class="sub" id="buildVersion" style="margin-top:8px; text-align:right; opacity:0.55;">Build 2026-08-27-1201Z</p>
 
 </div>
 
@@ -857,8 +857,22 @@
       let interimText = '';
       for (let i = e.resultIndex; i < e.results.length; i++) {
         const result = e.results[i];
-        const rawTranscript = result[0].transcript.trim();
+        let rawTranscript = result[0].transcript.trim();
         console.log('[mic] onresult:', JSON.stringify(rawTranscript), 'isFinal:', result.isFinal);
+
+        // Saying "start over" at any point wipes the spelling captured so
+        // far and keeps the mic listening, without ever submitting the
+        // word — so a slip mid-spelling costs nothing.
+        if (/start[\s-]*over/i.test(rawTranscript)) {
+          console.log('[mic] "start over" heard — clearing input, staying live');
+          finalText = '';
+          interimText = '';
+          input.value = '';
+          gotFirstResult = false;
+          resetSilenceTimer();
+          rawTranscript = rawTranscript.replace(/^[\s\S]*start[\s-]*over[\s.,!?;:-]*/i, '').trim();
+          if (rawTranscript === '') continue;
+        }
 
         // On iOS, when the recognizer gets ambiguous or near-silent audio
         // (very common when parsing single spelled-out letters), it tends

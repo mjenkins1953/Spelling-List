@@ -761,7 +761,7 @@
       <span class="score-chip" id="percentChip">Correct %: 0.0%</span>
       <span class="score-chip" id="remainingChip">Remaining: 300</span>
     </div>
-    <p class="sub" id="buildVersion" style="margin:0; opacity:0.55;">Build 2026-08-27-1144Z</p>
+    <p class="sub" id="buildVersion" style="margin:0; opacity:0.55;">Build 2026-08-27-1201Z</p>
   </div>
 
   <div class="complete-panel" id="completePanel">
@@ -1177,8 +1177,22 @@
       resetSilenceTimer();
       let interimText = '';
       for (let i = e.resultIndex; i < e.results.length; i++) {
-        const rawTranscript = e.results[i][0].transcript.trim();
+        let rawTranscript = e.results[i][0].transcript.trim();
         console.log('[mic] onresult:', JSON.stringify(rawTranscript), 'isFinal:', e.results[i].isFinal);
+
+        // Saying "start over" at any point wipes the spelling captured so
+        // far and keeps the mic listening, without ever submitting the
+        // word — so a slip mid-spelling costs nothing.
+        if (/start[\s-]*over/i.test(rawTranscript)) {
+          console.log('[mic] "start over" heard — clearing input, staying live');
+          finalText = '';
+          interimText = '';
+          typeInput.value = '';
+          gotFirstResult = false;
+          resetSilenceTimer();
+          rawTranscript = rawTranscript.replace(/^[\s\S]*start[\s-]*over[\s.,!?;:-]*/i, '').trim();
+          if (rawTranscript === '') continue;
+        }
 
         // On iOS, when the recognizer gets ambiguous or near-silent audio,
         // it tends to fall back to a small set of common "hot words"
