@@ -506,16 +506,17 @@
     gap: 10px;
   }
 
-  /* Matches .definition-text (the pronunciation) in font, size, weight and
-     line-height so the two text boxes are the same height and .phon-row's
-     align-items:center lines their vertical centers up exactly. */
+  /* Same monospace face as the "Hear It" button, medium gray, at the 24px
+     size it has always been. line-height matches .definition-text (the
+     pronunciation) so .phon-row's align-items:center keeps their vertical
+     centers lined up. */
   .word-id-top{
     flex: none;
-    font-family: 'Fraunces', serif;
+    font-family: 'IBM Plex Mono', monospace;
     font-size: 24px;
     font-weight: 500;
     line-height: 1.35;
-    color: #4B5563;
+    color: #6B7280;
     white-space: nowrap;
   }
 
@@ -758,7 +759,7 @@
       <span class="score-chip" id="percentChip">Correct %: 0.0%</span>
       <span class="score-chip" id="remainingChip">Remaining: 300</span>
     </div>
-    <p class="sub" id="buildVersion" style="margin:0; opacity:0.55; white-space:nowrap;">Build 2026-08-27-1213Z</p>
+    <p class="sub" id="buildVersion" style="margin:0; opacity:0.55; white-space:nowrap;">Build 2026-08-27-1214Z</p>
   </div>
 
   <div class="complete-panel" id="completePanel">
