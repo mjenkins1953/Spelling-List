@@ -684,7 +684,7 @@
     <div class="no-results" id="noResults">No words match your search.</div>
   </div>
 
-  <p class="sub" id="buildVersion" style="margin-top:8px; text-align:right; opacity:0.55; white-space:nowrap;">Build 2026-08-27-1232Z</p>
+  <p class="sub" id="buildVersion" style="margin-top:8px; text-align:right; opacity:0.55; white-space:nowrap;">Build 2026-08-27-1314Z</p>
 
 </div>
 
@@ -1272,6 +1272,16 @@
       row.querySelector('.correct-cell').innerHTML = '';
     });
     updateScoreboard();
+
+    // Drop the cursor back in the first input at the top of the list
+    // (the first row still visible under any active filter).
+    const firstRow = rows.find(row => !row.classList.contains('hidden-row'));
+    if (firstRow) {
+      const firstInput = firstRow.querySelector('.type-input');
+      firstInput.focus();
+      firstInput.select();
+      firstRow.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
   });
 
   toggleWordsBtn.addEventListener('click', () => {
