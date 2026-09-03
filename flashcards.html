@@ -680,6 +680,14 @@
   }
   .is-correct .retry-result{ color: var(--correct-border); }
   .is-incorrect .retry-result{ color: var(--incorrect-border); }
+
+  /* TEAM PRACTICE mode: no typing and no scoring, so the Type It field
+     and the correct/incorrect/percent chips are hidden. */
+  body.team-mode #typeLabel,
+  body.team-mode #typeRow{ display: none; }
+  body.team-mode #correctChip,
+  body.team-mode #incorrectChip,
+  body.team-mode #percentChip{ display: none; }
 </style>
 </head>
 <body>
@@ -700,6 +708,7 @@
       <button class="reset-btn" id="resetBtn" type="button">Reset</button>
       <button class="reset-btn" id="showWordBtn" type="button">Show Word</button>
       <button class="reset-btn" id="practiceMissedBtn" type="button" disabled>Practice Missed Words</button>
+      <button class="reset-btn" id="modeToggleBtn" type="button">Single Practice</button>
       <div class="range-row">
         <div class="range-field">
           <label for="fromInput">From</label>
@@ -737,8 +746,8 @@
     <p class="field-label">Definition</p>
     <p class="phon-text" id="defText" style="margin-bottom: 24px;"></p>
 
-    <p class="field-label">Type It</p>
-    <div class="type-row">
+    <p class="field-label" id="typeLabel">Type It</p>
+    <div class="type-row" id="typeRow">
       <input class="type-input-lg" id="typeInput" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Type the spelling">
       <button class="mic-btn" id="micBtn" type="button" aria-label="Say the spelling">
         <svg viewBox="0 0 24 24"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-2.08A7 7 0 0 0 19 12h-2z"/></svg>
@@ -759,7 +768,7 @@
       <span class="score-chip" id="percentChip">Correct %: 0.0%</span>
       <span class="score-chip" id="remainingChip">Remaining: 300</span>
     </div>
-    <p class="sub" id="buildVersion" style="margin:0; opacity:0.55; white-space:nowrap;">Build 2026-09-03-0500Z</p>
+    <p class="sub" id="buildVersion" style="margin:0; opacity:0.55; white-space:nowrap;">Build 2026-09-03-0530Z</p>
   </div>
 
   <div class="complete-panel" id="completePanel">
@@ -832,6 +841,7 @@
   const thruInput = document.getElementById('thruInput');
   const skipWordBtn = document.getElementById('skipWordBtn');
   const autoHearBtn = document.getElementById('autoHearBtn');
+  const modeToggleBtn = document.getElementById('modeToggleBtn');
   let autoHearEnabled = false;
   const correctChip = document.getElementById('correctChip');
   const incorrectChip = document.getElementById('incorrectChip');
@@ -904,6 +914,75 @@
   let currentWordId = null;
   let answered = false;
   let showWordMode = false;
+
+  // ---------- TEAM PRACTICE mode ----------
+  // A caller-led mode: no typing, no scoring. Each "Next Word" click draws
+  // a random word from the From/Thru range and flags it so it won't come
+  // up again until every other word in the range has been shown; once the
+  // last one is drawn, the flags clear and a fresh cycle begins.
+  let teamMode = false;
+  let teamPool = [];            // 0-based word indices in the current range
+  const teamUsed = new Set();   // indices already shown this cycle
+
+  function teamRangeIndices() {
+    const { from, thru } = getValidatedRange();
+    const arr = [];
+    for (let id = from; id <= thru; id++) arr.push(id - 1);
+    return arr;
+  }
+
+  function updateTeamRemaining() {
+    remainingChip.textContent = 'Remaining: ' + (teamPool.length - teamUsed.size);
+  }
+
+  function teamDrawWord() {
+    let candidates = teamPool.filter(i => !teamUsed.has(i));
+    if (candidates.length === 0) {
+      // Last word of the cycle was already drawn — start over.
+      teamUsed.clear();
+      candidates = teamPool.slice();
+    }
+    const idx = candidates[Math.floor(Math.random() * candidates.length)];
+    teamUsed.add(idx);
+
+    if (window.speechSynthesis) window.speechSynthesis.cancel();
+    currentItem = words[idx];
+    currentWordId = idx + 1;
+    answered = false;
+
+    defText.textContent = currentItem.def;
+    phonText.textContent = currentItem.phon;
+    wordIdTop.textContent = currentWordId;
+    quizCard.classList.remove('is-correct', 'is-incorrect');
+    nextBtn.classList.remove('show');
+    updateWordHint();           // respects Show Word / Hide Word
+    updateTeamRemaining();
+  }
+
+  function enterTeamMode() {
+    teamMode = true;
+    document.body.classList.add('team-mode');
+    modeToggleBtn.textContent = 'Team Practice';
+    modeToggleBtn.classList.add('active');
+    completePanel.classList.remove('show');
+    quizCard.style.display = '';
+    teamPool = teamRangeIndices();
+    teamUsed.clear();
+    teamDrawWord();              // show the first random word right away
+  }
+
+  function exitTeamMode() {
+    teamMode = false;
+    document.body.classList.remove('team-mode');
+    modeToggleBtn.textContent = 'Single Practice';
+    modeToggleBtn.classList.remove('active');
+    startQuiz();                 // back to the first-load experience
+  }
+
+  function toggleMode() {
+    if (teamMode) exitTeamMode();
+    else enterTeamMode();
+  }
 
   function shuffledRangeIndices(fromId, thruId) {
     const arr = [];
@@ -1274,14 +1353,18 @@
   }
 
   nextBtn.addEventListener('click', () => {
+    if (teamMode) { teamDrawWord(); speakAfterAdvance(); return; }
     loadNextWord();
     speakAfterAdvance();
   });
 
   skipWordBtn.addEventListener('click', () => {
+    if (teamMode) { teamDrawWord(); speakAfterAdvance(); return; }
     skipCurrentWord();
     speakAfterAdvance();
   });
+
+  modeToggleBtn.addEventListener('click', toggleMode);
 
   autoHearBtn.addEventListener('click', () => {
     autoHearEnabled = !autoHearEnabled;
@@ -1289,14 +1372,15 @@
     autoHearBtn.classList.toggle('active', autoHearEnabled);
   });
 
-  resetBtn.addEventListener('click', () => startQuiz());
+  resetBtn.addEventListener('click', () => { if (teamMode) enterTeamMode(); else startQuiz(); });
 
   // Applying a new From/Thru range should re-run the same reset logic
   // as clicking Reset — triggers once the person finishes typing and
   // moves off the field (not on every keystroke, since a value like
   // "150" would otherwise reset three times as each digit is typed).
-  fromInput.addEventListener('change', () => startQuiz());
-  thruInput.addEventListener('change', () => startQuiz());
+  // In TEAM PRACTICE this rebuilds the pool and restarts the cycle.
+  fromInput.addEventListener('change', () => { if (teamMode) enterTeamMode(); else startQuiz(); });
+  thruInput.addEventListener('change', () => { if (teamMode) enterTeamMode(); else startQuiz(); });
 
   function escapeHtml(str) {
     const div = document.createElement('div');
