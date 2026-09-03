@@ -239,6 +239,7 @@
   colgroup .col-hear{ width: 88px; }
   colgroup .col-type{ width: 19%; }
   colgroup .col-correct{ width: 16%; }
+  colgroup .col-mark{ width: 58px; }
 
   /* Word column is hidden by default (quiz mode); the Show/Hide Word
      List button toggles a class on the table to reveal it. Hiding both
@@ -273,6 +274,17 @@
   thead th:last-child{ border-right: none; }
   thead th.col-id{ text-align: center; }
   thead th.col-hear{ text-align: center; }
+  thead th.col-mark{ text-align: center; }
+
+  td.cell-mark{
+    text-align: center;
+  }
+  td.cell-mark input[type="checkbox"]{
+    width: 16px;
+    height: 16px;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
 
   .th-label{
     overflow: hidden;
@@ -643,6 +655,7 @@
     <button class="reset-btn" id="resetBtn" type="button">Reset Answers</button>
     <button class="reset-btn" id="toggleWordsBtn" type="button">Show Word List</button>
     <button class="reset-btn" id="practiceMissedBtn" type="button" disabled>Practice Missed Words</button>
+    <button class="reset-btn" id="practiceMarkedBtn" type="button">Practice Marked</button>
   </div>
 
   <div class="scoreboard-row">
@@ -667,6 +680,7 @@
         <col class="col-hear">
         <col class="col-type">
         <col class="col-correct">
+        <col class="col-mark">
       </colgroup>
       <thead>
         <tr id="quizHeaderRow">
@@ -677,6 +691,7 @@
           <th class="col-hear">Hear It</th>
           <th>Type It</th>
           <th>Correct Spelling</th>
+          <th class="col-mark">Mark</th>
         </tr>
       </thead>
       <tbody id="list"></tbody>
@@ -684,7 +699,7 @@
     <div class="no-results" id="noResults">No words match your search.</div>
   </div>
 
-  <p class="sub" id="buildVersion" style="margin-top:8px; text-align:right; opacity:0.55; white-space:nowrap;">Build 2026-09-02-0124Z</p>
+  <p class="sub" id="buildVersion" style="margin-top:8px; text-align:right; opacity:0.55; white-space:nowrap;">Build 2026-09-03-0130Z</p>
 
 </div>
 
@@ -746,6 +761,7 @@
   const remainingChip = document.getElementById('remainingChip');
   const percentChip = document.getElementById('percentChip');
   const practiceMissedBtn = document.getElementById('practiceMissedBtn');
+  const practiceMarkedBtn = document.getElementById('practiceMarkedBtn');
   const practiceOverlay = document.getElementById('practiceOverlay');
   const practiceClose = document.getElementById('practiceClose');
   const practiceList = document.getElementById('practiceList');
@@ -1173,6 +1189,9 @@
       <td class="cell-correct">
         <div class="correct-cell"></div>
       </td>
+      <td class="cell-mark">
+        <input class="mark-check" type="checkbox" aria-label="Mark row ${i + 1} for practice">
+      </td>
     `;
 
     const input = row.querySelector('.type-input');
@@ -1186,6 +1205,12 @@
 
     const correctCell = row.querySelector('.correct-cell');
     const micBtn = row.querySelector('.mic-btn');
+
+    // When "Practice Marked" is active, checking/unchecking a box should
+    // immediately re-run the filter so the row appears or drops out.
+    row.querySelector('.mark-check').addEventListener('change', () => {
+      if (markedOnly) applyFilters();
+    });
 
     input.addEventListener('blur', () => checkAnswer(row, item, input, correctCell));
     input.addEventListener('keydown', (e) => {
@@ -1244,6 +1269,10 @@
     applyFilters();
   }
 
+  // Toggled by the "Practice Marked" button: when true, applyFilters() also
+  // requires a row's MARK checkbox to be checked for it to stay visible.
+  let markedOnly = false;
+
   function applyFilters() {
     const q = searchInput.value.trim().toLowerCase();
     const range = getRange();
@@ -1252,7 +1281,8 @@
       const id = i + 1;
       const textMatch = q === '' || row.dataset.search.includes(q);
       const rangeMatch = !range || (id >= range.lo && id <= range.hi);
-      const match = textMatch && rangeMatch;
+      const markMatch = !markedOnly || row.querySelector('.mark-check').checked;
+      const match = textMatch && rangeMatch && markMatch;
       row.classList.toggle('hidden-row', !match);
       if (match) visible++;
     });
@@ -1282,6 +1312,12 @@
       firstInput.select();
       firstRow.scrollIntoView({ block: 'center', behavior: 'smooth' });
     }
+  });
+
+  practiceMarkedBtn.addEventListener('click', () => {
+    markedOnly = !markedOnly;
+    practiceMarkedBtn.textContent = markedOnly ? 'Show All Words' : 'Practice Marked';
+    applyFilters();
   });
 
   toggleWordsBtn.addEventListener('click', () => {
