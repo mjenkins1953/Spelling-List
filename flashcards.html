@@ -527,6 +527,14 @@
     font-size: 20px;
     font-weight: 600;
   }
+  /* Word ID shown alongside the revealed spelling, same monospace/gray
+     treatment as the ID up in the pronunciation row. */
+  .correct-cell .word-id-inline{
+    flex: none;
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 500;
+    color: #6B7280;
+  }
   .correct-cell .flag{
     flex: none;
     width: 22px;
@@ -770,7 +778,7 @@
       <span class="score-chip" id="percentChip">Correct %: 0.0%</span>
       <span class="score-chip" id="remainingChip">Remaining: 300</span>
     </div>
-    <p class="sub" id="buildVersion" style="margin:0; opacity:0.55; white-space:nowrap;">Build 2026-09-03-0700Z</p>
+    <p class="sub" id="buildVersion" style="margin:0; opacity:0.55; white-space:nowrap;">Build 2026-09-03-0730Z</p>
   </div>
 
   <div class="complete-panel" id="completePanel">
@@ -1055,7 +1063,7 @@
     // TEAM PRACTICE always reveals the spelling (the Show Word toggle is
     // hidden in that mode).
     if (showWordMode || teamMode) {
-      correctCell.innerHTML = `<span class="spelling-text" style="color: var(--ink);">${currentItem.word.toUpperCase()}</span>`;
+      correctCell.innerHTML = `<span class="word-id-inline">${currentWordId}</span><span class="spelling-text" style="color: var(--ink);">${currentItem.word.toUpperCase()}</span>`;
     } else {
       correctCell.innerHTML = '';
     }
@@ -1189,6 +1197,7 @@
 
     correctCell.innerHTML = `
       <span class="flag">${isCorrect ? '&#10003;' : '&#10007;'}</span>
+      <span class="word-id-inline">${currentWordId}</span>
       <span class="spelling-text">${currentItem.word.toUpperCase()}</span>
     `;
 
