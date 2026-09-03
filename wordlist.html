@@ -656,6 +656,7 @@
     <button class="reset-btn" id="toggleWordsBtn" type="button">Show Word List</button>
     <button class="reset-btn" id="practiceMissedBtn" type="button" disabled>Practice Missed Words</button>
     <button class="reset-btn" id="practiceMarkedBtn" type="button">Practice Marked Words</button>
+    <button class="reset-btn" id="clearMarkedBtn" type="button">Clear Marked</button>
   </div>
 
   <div class="scoreboard-row">
@@ -699,7 +700,7 @@
     <div class="no-results" id="noResults">No words match your search.</div>
   </div>
 
-  <p class="sub" id="buildVersion" style="margin-top:8px; text-align:right; opacity:0.55; white-space:nowrap;">Build 2026-09-03-0200Z</p>
+  <p class="sub" id="buildVersion" style="margin-top:8px; text-align:right; opacity:0.55; white-space:nowrap;">Build 2026-09-03-0230Z</p>
 
 </div>
 
@@ -762,6 +763,7 @@
   const percentChip = document.getElementById('percentChip');
   const practiceMissedBtn = document.getElementById('practiceMissedBtn');
   const practiceMarkedBtn = document.getElementById('practiceMarkedBtn');
+  const clearMarkedBtn = document.getElementById('clearMarkedBtn');
   const practiceOverlay = document.getElementById('practiceOverlay');
   const practiceClose = document.getElementById('practiceClose');
   const practiceList = document.getElementById('practiceList');
@@ -1114,6 +1116,27 @@
 
   const rows = [];
 
+  // Marked words persist across reloads in localStorage, keyed by the
+  // word's 1-based ID. Load the saved set once up front so each row can
+  // restore its checkbox state as it's built.
+  const MARKED_STORAGE_KEY = 'spellingQuiz.markedWords';
+  let markedIds;
+  try {
+    markedIds = new Set(JSON.parse(localStorage.getItem(MARKED_STORAGE_KEY) || '[]'));
+  } catch (e) {
+    markedIds = new Set();
+  }
+
+  function saveMarkedIds() {
+    markedIds = new Set();
+    rows.forEach((row, i) => {
+      if (row.querySelector('.mark-check').checked) markedIds.add(i + 1);
+    });
+    try {
+      localStorage.setItem(MARKED_STORAGE_KEY, JSON.stringify([...markedIds]));
+    } catch (e) { /* storage unavailable — marks just won't persist */ }
+  }
+
   function updateScoreboard() {
     let correct = 0, incorrect = 0, remaining = 0;
     rows.forEach(r => {
@@ -1206,9 +1229,13 @@
     const correctCell = row.querySelector('.correct-cell');
     const micBtn = row.querySelector('.mic-btn');
 
-    // When "Practice Marked" is active, checking/unchecking a box should
-    // immediately re-run the filter so the row appears or drops out.
-    row.querySelector('.mark-check').addEventListener('change', () => {
+    // Restore the saved mark state, then persist on every change. When
+    // "Practice Marked" is active, a change also re-runs the filter so the
+    // row appears or drops out immediately.
+    const markCheck = row.querySelector('.mark-check');
+    markCheck.checked = markedIds.has(i + 1);
+    markCheck.addEventListener('change', () => {
+      saveMarkedIds();
       if (markedOnly) applyFilters();
     });
 
@@ -1317,6 +1344,16 @@
   practiceMarkedBtn.addEventListener('click', () => {
     markedOnly = !markedOnly;
     practiceMarkedBtn.textContent = markedOnly ? 'Show All Words' : 'Practice Marked Words';
+    applyFilters();
+  });
+
+  clearMarkedBtn.addEventListener('click', () => {
+    rows.forEach(row => { row.querySelector('.mark-check').checked = false; });
+    saveMarkedIds();
+    if (markedOnly) {
+      markedOnly = false;
+      practiceMarkedBtn.textContent = 'Practice Marked Words';
+    }
     applyFilters();
   });
 
