@@ -196,14 +196,25 @@
 
   .controls{
     display:flex;
-    align-items:center;
-    justify-content: space-between;
+    flex-direction: column;
+    align-items: stretch;
     gap: 16px;
-    flex-wrap: wrap;
     margin: 26px 0 18px;
   }
 
-  .controls-left{
+  /* The .controls column stacks two horizontal bands:
+     line 1 = [mode toggle / Practice Missed / Next Word] .... [From-Thru / Reset]
+     line 2 = [Show Word] [Auto Hear] [Speech rate slider] */
+  .ctrl-line{
+    display:flex;
+    align-items:center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .ctrl-line-split{
+    justify-content: space-between;
+  }
+  .ctrl-group{
     display:flex;
     align-items:center;
     gap: 10px;
@@ -714,28 +725,34 @@
   <p id="micSupportNote" class="support-note">Your browser doesn't support voice input. Try Chrome or Edge for the microphone feature.</p>
 
   <div class="controls">
-    <div class="controls-left">
-      <button class="reset-btn" id="resetBtn" type="button">Reset</button>
-      <button class="reset-btn" id="showWordBtn" type="button">Show Word</button>
-      <button class="reset-btn" id="practiceMissedBtn" type="button" disabled>Practice Missed Words</button>
-      <button class="reset-btn" id="modeToggleBtn" type="button">Team Practice</button>
-      <div class="range-row">
-        <div class="range-field">
-          <label for="fromInput">From</label>
-          <input type="number" id="fromInput" min="1" max="300" value="1">
-        </div>
-        <div class="range-field">
-          <label for="thruInput">Thru</label>
-          <input type="number" id="thruInput" min="1" max="300" value="300">
-        </div>
+    <div class="ctrl-line ctrl-line-split">
+      <div class="ctrl-group">
+        <button class="reset-btn" id="modeToggleBtn" type="button">Team Practice</button>
+        <button class="reset-btn" id="practiceMissedBtn" type="button" disabled>Practice Missed Words</button>
         <button class="reset-btn" id="skipWordBtn" type="button">Next Word</button>
-        <button class="reset-btn" id="autoHearBtn" type="button">Auto Hear</button>
+      </div>
+      <div class="ctrl-group">
+        <div class="range-row">
+          <div class="range-field">
+            <label for="fromInput">From</label>
+            <input type="number" id="fromInput" min="1" max="300" value="1">
+          </div>
+          <div class="range-field">
+            <label for="thruInput">Thru</label>
+            <input type="number" id="thruInput" min="1" max="300" value="300">
+          </div>
+        </div>
+        <button class="reset-btn" id="resetBtn" type="button">Reset</button>
       </div>
     </div>
-    <div class="rate-row">
-      <label for="rateSlider">Speech rate</label>
-      <input type="range" id="rateSlider" min="0.5" max="1.3" step="0.1" value="0.85">
-      <span id="rateVal">0.85&times;</span>
+    <div class="ctrl-line">
+      <button class="reset-btn" id="showWordBtn" type="button">Show Word</button>
+      <button class="reset-btn" id="autoHearBtn" type="button">Auto Hear</button>
+      <div class="rate-row">
+        <label for="rateSlider">Speech rate</label>
+        <input type="range" id="rateSlider" min="0.5" max="1.3" step="0.1" value="0.85">
+        <span id="rateVal">0.85&times;</span>
+      </div>
     </div>
   </div>
 
@@ -778,7 +795,7 @@
       <span class="score-chip" id="percentChip">Correct %: 0.0%</span>
       <span class="score-chip" id="remainingChip">Remaining: 300</span>
     </div>
-    <p class="sub" id="buildVersion" style="margin:0; opacity:0.55; white-space:nowrap;">Build 2026-09-03-0730Z</p>
+    <p class="sub" id="buildVersion" style="margin:0; opacity:0.55; white-space:nowrap;">Build 2026-09-03-0800Z</p>
   </div>
 
   <div class="complete-panel" id="completePanel">
