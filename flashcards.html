@@ -708,7 +708,7 @@
       <button class="reset-btn" id="resetBtn" type="button">Reset</button>
       <button class="reset-btn" id="showWordBtn" type="button">Show Word</button>
       <button class="reset-btn" id="practiceMissedBtn" type="button" disabled>Practice Missed Words</button>
-      <button class="reset-btn" id="modeToggleBtn" type="button">Single Practice</button>
+      <button class="reset-btn" id="modeToggleBtn" type="button">Team Practice</button>
       <div class="range-row">
         <div class="range-field">
           <label for="fromInput">From</label>
@@ -768,7 +768,7 @@
       <span class="score-chip" id="percentChip">Correct %: 0.0%</span>
       <span class="score-chip" id="remainingChip">Remaining: 300</span>
     </div>
-    <p class="sub" id="buildVersion" style="margin:0; opacity:0.55; white-space:nowrap;">Build 2026-09-03-0600Z</p>
+    <p class="sub" id="buildVersion" style="margin:0; opacity:0.55; white-space:nowrap;">Build 2026-09-03-0630Z</p>
   </div>
 
   <div class="complete-panel" id="completePanel">
@@ -962,7 +962,9 @@
   function enterTeamMode() {
     teamMode = true;
     document.body.classList.add('team-mode');
-    modeToggleBtn.textContent = 'Team Practice';
+    // The label names where the button takes you, so in Team Practice it
+    // offers the way back to Single Practice.
+    modeToggleBtn.textContent = 'Single Practice';
     modeToggleBtn.classList.add('active');
     completePanel.classList.remove('show');
     quizCard.style.display = '';
@@ -974,7 +976,7 @@
   function exitTeamMode() {
     teamMode = false;
     document.body.classList.remove('team-mode');
-    modeToggleBtn.textContent = 'Single Practice';
+    modeToggleBtn.textContent = 'Team Practice';
     modeToggleBtn.classList.remove('active');
     // Reset the Show Word toggle to its first-load (hidden) state.
     showWordMode = false;
