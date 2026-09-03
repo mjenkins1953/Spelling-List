@@ -101,17 +101,20 @@
     margin-left: auto;
   }
 
-  /* The mark/practice buttons sit on their own line below the rest of the
-     controls (flex-basis:100% forces the wrap), so moving them never
-     disturbs the search/range/rate row above. */
+  /* The word-list / mark / practice buttons sit on their own line below
+     the rest of the controls (flex-basis:100% forces the wrap), so moving
+     them never disturbs the search/range/rate row above. Two columns:
+     Show Word List + Clear Marked on the left, the practice pair on the
+     right, so Clear Marked lands directly below Show Word List and to the
+     left of Practice Missed Words. */
   .mark-controls{
     flex-basis: 100%;
     display: flex;
     align-items: flex-start;
     gap: 16px;
   }
-  /* Stacks "Practice Marked Words" directly beneath "Practice Missed
-     Words"; align-items:stretch keeps both buttons the same width. */
+  /* Each column stacks its two buttons vertically; align-items:stretch
+     keeps a column's buttons the same width. */
   .practice-btn-stack{
     display: flex;
     flex-direction: column;
@@ -671,13 +674,15 @@
       <span id="rateVal">0.85&times;</span>
     </div>
     <button class="reset-btn" id="resetBtn" type="button">Reset Answers</button>
-    <button class="reset-btn" id="toggleWordsBtn" type="button">Show Word List</button>
     <div class="mark-controls">
+      <div class="practice-btn-stack">
+        <button class="reset-btn" id="toggleWordsBtn" type="button">Show Word List</button>
+        <button class="reset-btn" id="clearMarkedBtn" type="button">Clear Marked</button>
+      </div>
       <div class="practice-btn-stack">
         <button class="reset-btn" id="practiceMissedBtn" type="button" disabled>Practice Missed Words</button>
         <button class="reset-btn" id="practiceMarkedBtn" type="button">Practice Marked Words</button>
       </div>
-      <button class="reset-btn" id="clearMarkedBtn" type="button">Clear Marked</button>
     </div>
   </div>
 
@@ -722,7 +727,7 @@
     <div class="no-results" id="noResults">No words match your search.</div>
   </div>
 
-  <p class="sub" id="buildVersion" style="margin-top:8px; text-align:right; opacity:0.55; white-space:nowrap;">Build 2026-09-03-0330Z</p>
+  <p class="sub" id="buildVersion" style="margin-top:8px; text-align:right; opacity:0.55; white-space:nowrap;">Build 2026-09-03-0400Z</p>
 
 </div>
 
