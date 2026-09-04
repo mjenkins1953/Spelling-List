@@ -212,13 +212,34 @@
     flex-wrap: wrap;
   }
   .ctrl-line-split{
+    /* No wrap: the whole point of this row is Practice Missed Words /
+       Practice Study Words / Next Word ... From-Thru / Reset staying on
+       one line. The buttons below are sized tightly enough to fit. */
+    flex-wrap: nowrap;
     justify-content: space-between;
   }
   .ctrl-group{
     display:flex;
     align-items:center;
-    gap: 10px;
-    flex-wrap: wrap;
+    gap: 8px;
+    flex-wrap: nowrap;
+  }
+  /* This row is the tightest fit on the page (four button labels plus
+     From/Thru/Reset all on one line), so its buttons run smaller than
+     the reset-btn default used everywhere else. */
+  .ctrl-line-split .reset-btn{
+    font-size: 10px;
+    letter-spacing: 0.02em;
+    padding: 6px 9px;
+    white-space: nowrap;
+  }
+  .ctrl-line-split .range-row{
+    gap: 6px;
+  }
+  .ctrl-line-split .range-row input[type="number"]{
+    width: 42px;
+    padding: 4px 5px;
+    font-size: 11px;
   }
 
   .reset-btn{
@@ -724,6 +745,16 @@
   .is-correct .retry-result{ color: var(--correct-border); }
   .is-incorrect .retry-result{ color: var(--incorrect-border); }
 
+  /* Below this width the top control row's buttons no longer fit on one
+     line even at their compact size — fall back to wrapping rather than
+     letting Reset run off the edge of the screen. */
+  @media (max-width: 700px){
+    .ctrl-line-split,
+    .ctrl-line-split .ctrl-group{
+      flex-wrap: wrap;
+    }
+  }
+
   /* TEAM PRACTICE mode: no typing and no scoring, so the Type It field
      and the correct/incorrect/percent chips are hidden. */
   body.team-mode #typeLabel,
@@ -826,7 +857,7 @@
       <span class="score-chip" id="percentChip">Correct %: 0.0%</span>
       <span class="score-chip" id="remainingChip">Remaining: 300</span>
     </div>
-    <p class="sub" id="buildVersion" style="margin:0; opacity:0.55; white-space:nowrap;">Build 2026-09-03-1000Z</p>
+    <p class="sub" id="buildVersion" style="margin:0; opacity:0.55; white-space:nowrap;">Build 2026-09-03-1030Z</p>
   </div>
 
   <div class="complete-panel" id="completePanel">
