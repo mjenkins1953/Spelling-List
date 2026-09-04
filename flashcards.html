@@ -423,10 +423,16 @@
   .phon-row .definition-text{
     display: none;
   }
-  /* The mic button now lives in this row rather than next to Type It;
-     margin-left:auto pushes it (and Next Word right after it) to the far
-     right, so it sits directly to the left of Next Word. */
-  .phon-row .mic-btn{
+  /* The mic, Next Word and Study Word buttons live together on the right
+     of this row. Grouping them in their own flex container (rather than
+     margin-left:auto on the first one) keeps them snug against each other
+     — and the group pinned to the right edge — no matter which of them
+     happen to be hidden (mic in Team Practice, Next Word before an
+     answer is checked). */
+  .phon-row-right{
+    display: flex;
+    align-items: center;
+    gap: 14px;
     margin-left: auto;
   }
 
@@ -719,6 +725,9 @@
   body.team-mode #typeRow{ display: none; }
   /* Spelling is always shown in TEAM PRACTICE, so the toggle is hidden. */
   body.team-mode #showWordBtn{ display: none; }
+  /* No typing/scoring happens in Team Practice, so the mic (now living in
+     the pronunciation row) has nothing to do there. */
+  body.team-mode #micBtn{ display: none; }
   body.team-mode #correctChip,
   body.team-mode #incorrectChip,
   body.team-mode #percentChip{ display: none; }
@@ -742,6 +751,7 @@
       <div class="ctrl-group">
         <button class="reset-btn" id="modeToggleBtn" type="button">Team Practice</button>
         <button class="reset-btn" id="practiceMissedBtn" type="button" disabled>Practice Missed Words</button>
+        <button class="reset-btn" id="practiceStudyBtn" type="button" disabled>Practice Study Words</button>
         <button class="reset-btn" id="skipWordBtn" type="button">Next Word</button>
       </div>
       <div class="ctrl-group">
@@ -780,10 +790,13 @@
       </button>
       <span class="word-id-top" id="wordIdTop"></span>
       <span class="definition-text" id="phonText" style="margin: 0;"></span>
-      <button class="mic-btn" id="micBtn" type="button" aria-label="Say the spelling">
-        <svg viewBox="0 0 24 24"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-2.08A7 7 0 0 0 19 12h-2z"/></svg>
-      </button>
-      <button class="next-btn" id="nextBtn" type="button">Next Word</button>
+      <div class="phon-row-right">
+        <button class="mic-btn" id="micBtn" type="button" aria-label="Say the spelling">
+          <svg viewBox="0 0 24 24"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-2.08A7 7 0 0 0 19 12h-2z"/></svg>
+        </button>
+        <button class="next-btn" id="nextBtn" type="button">Next Word</button>
+        <button class="reset-btn" id="studyWordBtn" type="button">Study Word</button>
+      </div>
     </div>
 
     <p class="field-label">Definition</p>
@@ -808,7 +821,7 @@
       <span class="score-chip" id="percentChip">Correct %: 0.0%</span>
       <span class="score-chip" id="remainingChip">Remaining: 300</span>
     </div>
-    <p class="sub" id="buildVersion" style="margin:0; opacity:0.55; white-space:nowrap;">Build 2026-09-03-0900Z</p>
+    <p class="sub" id="buildVersion" style="margin:0; opacity:0.55; white-space:nowrap;">Build 2026-09-03-0930Z</p>
   </div>
 
   <div class="complete-panel" id="completePanel">
@@ -910,6 +923,8 @@
   const missedModalBody = document.getElementById('missedModalBody');
   const missedModalClose = document.getElementById('missedModalClose');
   const practiceMissedBtn = document.getElementById('practiceMissedBtn');
+  const studyWordBtn = document.getElementById('studyWordBtn');
+  const practiceStudyBtn = document.getElementById('practiceStudyBtn');
   const practiceOverlay = document.getElementById('practiceOverlay');
   const practiceModalClose = document.getElementById('practiceModalClose');
   const practiceModalList = document.getElementById('practiceModalList');
@@ -956,6 +971,17 @@
   let locked = false;     // true once the current word has been answered CORRECTLY — no more retries
   let showWordMode = false;
 
+  // ---------- STUDY WORD flags ----------
+  // Word IDs (1-based) the user has hand-picked to revisit, independent of
+  // right/wrong answers. Persists across words/rounds until Reset clears it.
+  let studyWordIds = new Set();
+
+  function updateStudyWordUI() {
+    const isFlagged = !!currentItem && studyWordIds.has(currentWordId);
+    studyWordBtn.classList.toggle('active', isFlagged);
+    practiceStudyBtn.disabled = studyWordIds.size === 0;
+  }
+
   // ---------- TEAM PRACTICE mode ----------
   // A caller-led mode: no typing, no scoring. Each "Next Word" click draws
   // a random word from the From/Thru range and flags it so it won't come
@@ -997,6 +1023,7 @@
     quizCard.classList.remove('is-correct', 'is-incorrect');
     nextBtn.classList.remove('show');
     updateWordHint();           // respects Show Word / Hide Word
+    updateStudyWordUI();
     updateTeamRemaining();
   }
 
@@ -1030,14 +1057,18 @@
     else enterTeamMode();
   }
 
-  function shuffledRangeIndices(fromId, thruId) {
-    const arr = [];
-    for (let id = fromId; id <= thruId; id++) arr.push(id - 1); // 0-based index
+  function shuffleArray(arr) {
     for (let i = arr.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [arr[i], arr[j]] = [arr[j], arr[i]];
     }
     return arr;
+  }
+
+  function shuffledRangeIndices(fromId, thruId) {
+    const arr = [];
+    for (let id = fromId; id <= thruId; id++) arr.push(id - 1); // 0-based index
+    return shuffleArray(arr);
   }
 
   function getValidatedRange() {
@@ -1064,11 +1095,38 @@
     // as remaining.
     remainingChip.textContent = 'Remaining: ' + (deck.length - correctCount - incorrectCount);
     practiceMissedBtn.disabled = missedWords.length === 0;
+    practiceStudyBtn.disabled = studyWordIds.size === 0;
   }
 
   function startQuiz() {
     const { from, thru } = getValidatedRange();
     deck = shuffledRangeIndices(from, thru);
+    deckPointer = 0;
+    correctCount = 0;
+    incorrectCount = 0;
+    missedWords = [];
+    completePanel.classList.remove('show');
+    quizCard.style.display = '';
+    updateScoreboard();
+    loadNextWord();
+  }
+
+  // Starts a fresh round using only the words flagged with "Study Word",
+  // regardless of the current From/Thru range. Forces Single Practice
+  // (scoring needs the Type It field) even if Team Practice was active.
+  function startStudyPractice() {
+    if (studyWordIds.size === 0) return;
+
+    if (teamMode) {
+      teamMode = false;
+      document.body.classList.remove('team-mode');
+      modeToggleBtn.textContent = 'Team Practice';
+      modeToggleBtn.classList.remove('active');
+      showWordMode = false;
+      showWordBtn.textContent = 'Show Word';
+    }
+
+    deck = shuffleArray(Array.from(studyWordIds, id => id - 1));
     deckPointer = 0;
     correctCount = 0;
     incorrectCount = 0;
@@ -1186,6 +1244,7 @@
     nextBtn.classList.remove('show');
 
     updateWordHint();
+    updateStudyWordUI();
     updateScoreboard();
     typeInput.focus();
   }
@@ -1457,13 +1516,25 @@
 
   modeToggleBtn.addEventListener('click', toggleMode);
 
+  studyWordBtn.addEventListener('click', () => {
+    if (!currentItem) return;
+    studyWordIds.add(currentWordId);
+    updateStudyWordUI();
+  });
+
+  practiceStudyBtn.addEventListener('click', startStudyPractice);
+
   autoHearBtn.addEventListener('click', () => {
     autoHearEnabled = !autoHearEnabled;
     autoHearBtn.textContent = autoHearEnabled ? 'Auto Quiet' : 'Auto Hear';
     autoHearBtn.classList.toggle('active', autoHearEnabled);
   });
 
-  resetBtn.addEventListener('click', () => { if (teamMode) enterTeamMode(); else startQuiz(); });
+  resetBtn.addEventListener('click', () => {
+    // Reset clears every STUDY WORD flag.
+    studyWordIds.clear();
+    if (teamMode) enterTeamMode(); else startQuiz();
+  });
 
   // Applying a new From/Thru range should re-run the same reset logic
   // as clicking Reset — triggers once the person finishes typing and
