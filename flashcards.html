@@ -415,6 +415,20 @@
     margin-bottom: 24px;
     flex-wrap: wrap;
   }
+  /* The phonetic pronunciation and the Word ID (and their label) are
+     hidden here — kept in the DOM (still populated by JS) rather than
+     removed, so nothing else that reads their text has to change. */
+  #phonLabel,
+  .phon-row .word-id-top,
+  .phon-row .definition-text{
+    display: none;
+  }
+  /* The mic button now lives in this row rather than next to Type It;
+     margin-left:auto pushes it (and Next Word right after it) to the far
+     right, so it sits directly to the left of Next Word. */
+  .phon-row .mic-btn{
+    margin-left: auto;
+  }
 
   .phon-text{
     font-family: 'IBM Plex Mono', monospace;
@@ -564,7 +578,6 @@
 
   .next-btn{
     flex: none;
-    margin-left: auto;
     height: 32px;
     padding: 0 16px;
     align-items: center;
@@ -759,7 +772,7 @@
   <div class="card" id="quizCard">
     <div class="fx-container" id="fxContainer"></div>
 
-    <p class="field-label">Phonetic Pronunciation</p>
+    <p class="field-label" id="phonLabel">Phonetic Pronunciation</p>
     <div class="phon-row">
       <button class="play-btn" id="hearBtn" type="button">
         <svg class="icon" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3a4.5 4.5 0 0 0-2.5-4.03v8.06A4.5 4.5 0 0 0 16.5 12z"/></svg>
@@ -767,6 +780,9 @@
       </button>
       <span class="word-id-top" id="wordIdTop"></span>
       <span class="definition-text" id="phonText" style="margin: 0;"></span>
+      <button class="mic-btn" id="micBtn" type="button" aria-label="Say the spelling">
+        <svg viewBox="0 0 24 24"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-2.08A7 7 0 0 0 19 12h-2z"/></svg>
+      </button>
       <button class="next-btn" id="nextBtn" type="button">Next Word</button>
     </div>
 
@@ -776,9 +792,6 @@
     <p class="field-label" id="typeLabel">Type It</p>
     <div class="type-row" id="typeRow">
       <input class="type-input-lg" id="typeInput" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Type the spelling">
-      <button class="mic-btn" id="micBtn" type="button" aria-label="Say the spelling">
-        <svg viewBox="0 0 24 24"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-2.08A7 7 0 0 0 19 12h-2z"/></svg>
-      </button>
     </div>
 
     <p class="field-label">Correct Spelling</p>
@@ -795,7 +808,7 @@
       <span class="score-chip" id="percentChip">Correct %: 0.0%</span>
       <span class="score-chip" id="remainingChip">Remaining: 300</span>
     </div>
-    <p class="sub" id="buildVersion" style="margin:0; opacity:0.55; white-space:nowrap;">Build 2026-09-03-0830Z</p>
+    <p class="sub" id="buildVersion" style="margin:0; opacity:0.55; white-space:nowrap;">Build 2026-09-03-0900Z</p>
   </div>
 
   <div class="complete-panel" id="completePanel">
@@ -939,7 +952,8 @@
   let missedWords = []; // { typed, correct }
   let currentItem = null;
   let currentWordId = null;
-  let answered = false;
+  let answered = false;   // true once the current word's first check has run (scoring locks in)
+  let locked = false;     // true once the current word has been answered CORRECTLY — no more retries
   let showWordMode = false;
 
   // ---------- TEAM PRACTICE mode ----------
@@ -1161,6 +1175,7 @@
     currentWordId = idx + 1; // Word ID is 1-based position in the master list
     deckPointer++;
     answered = false;
+    locked = false;
 
     defText.textContent = currentItem.def;
     phonText.textContent = currentItem.phon;
@@ -1193,42 +1208,81 @@
     loadNextWord();
   }
 
+  // Renders the flag/ID/spelling into the Correct Spelling row — shared by
+  // the first check and every retry.
+  function renderCorrectCell(isCorrect) {
+    correctCell.innerHTML = `
+      <span class="flag">${isCorrect ? '&#10003;' : '&#10007;'}</span>
+      <span class="word-id-inline">${currentWordId}</span>
+      <span class="spelling-text">${currentItem.word.toUpperCase()}</span>
+    `;
+  }
+
   function checkAnswer() {
     if (answered) return;
     const typed = typeInput.value.trim();
     if (typed === '') return;
 
     answered = true;
-    typeInput.disabled = true;
 
     const isCorrect = typed.toLowerCase() === currentItem.word.trim().toLowerCase();
     quizCard.classList.add(isCorrect ? 'is-correct' : 'is-incorrect');
     if (isCorrect) {
+      locked = true;
+      typeInput.disabled = true;
       correctCount++;
       fireFireworks();
     } else {
+      // Wrong on the first try: it's already scored as incorrect, but the
+      // field stays open so the word can be retried — a later correct
+      // retry doesn't change the score, it just lets them see it land.
       incorrectCount++;
       missedWords.push({ typed: typed, correct: currentItem.word, item: currentItem });
       showSadFace();
     }
 
-    correctCell.innerHTML = `
-      <span class="flag">${isCorrect ? '&#10003;' : '&#10007;'}</span>
-      <span class="word-id-inline">${currentWordId}</span>
-      <span class="spelling-text">${currentItem.word.toUpperCase()}</span>
-    `;
-
+    renderCorrectCell(isCorrect);
     nextBtn.classList.add('show');
     updateScoreboard();
     // Defer the focus shift: moving focus to Next Word inside the same
     // Enter keydown that just checked the answer can cause the browser to
     // treat the same key-release as also activating the newly-focused
     // button, silently skipping straight past the revealed answer.
-    setTimeout(() => nextBtn.focus(), 50);
+    if (isCorrect) {
+      setTimeout(() => nextBtn.focus(), 50);
+    } else {
+      setTimeout(() => { typeInput.focus(); typeInput.select(); }, 50);
+    }
+  }
+
+  // Re-checks a retry attempt after the word was already answered wrong
+  // once. Doesn't touch correctCount/incorrectCount/missedWords — those
+  // were already recorded on the first miss.
+  function retryAnswer() {
+    if (locked) return;
+    const typed = typeInput.value.trim();
+    if (typed === '') return;
+
+    const isCorrect = typed.toLowerCase() === currentItem.word.trim().toLowerCase();
+    quizCard.classList.remove('is-correct', 'is-incorrect');
+    quizCard.classList.add(isCorrect ? 'is-correct' : 'is-incorrect');
+    renderCorrectCell(isCorrect);
+
+    if (isCorrect) {
+      locked = true;
+      typeInput.disabled = true;
+      fireFireworks();
+      setTimeout(() => nextBtn.focus(), 50);
+    } else {
+      showSadFace();
+      setTimeout(() => { typeInput.focus(); typeInput.select(); }, 50);
+    }
   }
 
   function startListening() {
-    if (!recognitionSupported || answered) return;
+    // Once locked (answered correctly) there's nothing left to retry, but
+    // an incorrect-and-unlocked word can still be retried by voice.
+    if (!recognitionSupported || locked) return;
 
     if (activeRecognition) {
       activeRecognition.shouldStop = true;
@@ -1258,7 +1312,8 @@
       session.shouldStop = true;
       if (silenceTimer) clearTimeout(silenceTimer);
       micBtn.classList.remove('listening');
-      checkAnswer();
+      if (!answered) checkAnswer();
+      else retryAnswer();
     }
 
     // The very FIRST timer needs a much longer allowance than the
@@ -1377,6 +1432,7 @@
     if (e.key === 'Enter') {
       e.preventDefault();
       if (!answered) checkAnswer();
+      else if (!locked) retryAnswer();
       else loadNextWord();
     }
   });
