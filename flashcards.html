@@ -436,12 +436,11 @@
     margin-bottom: 24px;
     flex-wrap: wrap;
   }
-  /* The phonetic pronunciation and the Word ID (and their label) are
-     hidden here — kept in the DOM (still populated by JS) rather than
-     removed, so nothing else that reads their text has to change. */
-  #phonLabel,
-  .phon-row .word-id-top,
-  .phon-row .definition-text{
+  /* The Word ID is hidden here (still shown next to the revealed word in
+     the Correct Spelling row) — kept in the DOM (still populated by JS)
+     rather than removed, so nothing else that reads its text has to
+     change. The phonetic pronunciation itself is shown. */
+  .phon-row .word-id-top{
     display: none;
   }
   /* The mic and Next Word buttons live together on the right of this row.
@@ -857,7 +856,7 @@
       <span class="score-chip" id="percentChip">Correct %: 0.0%</span>
       <span class="score-chip" id="remainingChip">Remaining: 300</span>
     </div>
-    <p class="sub" id="buildVersion" style="margin:0; opacity:0.55; white-space:nowrap;">Build 2026-09-03-1100Z</p>
+    <p class="sub" id="buildVersion" style="margin:0; opacity:0.55; white-space:nowrap;">Build 2026-09-04-0900Z</p>
   </div>
 
   <div class="complete-panel" id="completePanel">
