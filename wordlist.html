@@ -254,12 +254,12 @@
 
   colgroup .col-id{ width: 43px; }
   colgroup .col-word{ width: calc(12% + 0.5in); }
-  colgroup .col-def{ width: calc(40% - 195px); }
+  colgroup .col-def{ width: auto; }
   colgroup .col-phon{ width: 15%; }
   colgroup .col-hear{ width: 88px; }
   colgroup .col-type{ width: 19%; }
   colgroup .col-correct{ width: 16%; }
-  colgroup .col-mark{ width: calc(10% + 64px); }
+  colgroup .col-mark{ width: 60px; }
 
   /* Word column is hidden by default (quiz mode); the Show/Hide Word
      List button toggles a class on the table to reveal it. Hiding both
@@ -310,6 +310,13 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+  /* The Study Word column is deliberately narrow (just wide enough for the
+     checkbox), so let its two-word header wrap onto two lines. */
+  thead th.col-mark .th-label{
+    white-space: normal;
+    display: inline-block;
+    line-height: 1.15;
   }
 
   thead th[draggable="true"]{ cursor: grab; }
@@ -726,7 +733,7 @@
     <div class="no-results" id="noResults">No words match your search.</div>
   </div>
 
-  <p class="sub" id="buildVersion" style="margin-top:8px; text-align:right; opacity:0.55; white-space:nowrap;">Build 2026-09-09-2257Z</p>
+  <p class="sub" id="buildVersion" style="margin-top:8px; text-align:right; opacity:0.55; white-space:nowrap;">Build 2026-09-09-2259Z</p>
 
 </div>
 
