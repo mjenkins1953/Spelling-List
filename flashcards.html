@@ -856,7 +856,7 @@
       <span class="score-chip" id="percentChip">Correct %: 0.0%</span>
       <span class="score-chip" id="remainingChip">Remaining: 300</span>
     </div>
-    <p class="sub" id="buildVersion" style="margin:0; opacity:0.55; white-space:nowrap;">Build 2026-09-09-2244Z</p>
+    <p class="sub" id="buildVersion" style="margin:0; opacity:0.55; white-space:nowrap;">Build 2026-09-09-2251Z</p>
   </div>
 
   <div class="complete-panel" id="completePanel">
@@ -1008,8 +1008,22 @@
 
   // ---------- STUDY WORD flags ----------
   // Word IDs (1-based) the user has hand-picked to revisit, independent of
-  // right/wrong answers. Persists across words/rounds until Reset clears it.
-  let studyWordIds = new Set();
+  // right/wrong answers. Persisted to localStorage under the same key the
+  // Word List page uses, so a word flagged on either page stays flagged
+  // everywhere and survives Reset, reloads, and new rounds.
+  const STUDY_WORDS_KEY = 'spellingQuiz.markedWords';
+  let studyWordIds;
+  try {
+    studyWordIds = new Set(JSON.parse(localStorage.getItem(STUDY_WORDS_KEY) || '[]'));
+  } catch (e) {
+    studyWordIds = new Set();
+  }
+
+  function saveStudyWordIds() {
+    try {
+      localStorage.setItem(STUDY_WORDS_KEY, JSON.stringify([...studyWordIds]));
+    } catch (e) { /* storage unavailable — flags just won't persist */ }
+  }
 
   function updateStudyWordUI() {
     const isFlagged = !!currentItem && studyWordIds.has(currentWordId);
@@ -1553,7 +1567,9 @@
 
   studyWordBtn.addEventListener('click', () => {
     if (!currentItem) return;
-    studyWordIds.add(currentWordId);
+    if (studyWordIds.has(currentWordId)) studyWordIds.delete(currentWordId);
+    else studyWordIds.add(currentWordId);
+    saveStudyWordIds();
     updateStudyWordUI();
   });
 
@@ -1566,8 +1582,8 @@
   });
 
   resetBtn.addEventListener('click', () => {
-    // Reset clears every STUDY WORD flag.
-    studyWordIds.clear();
+    // Reset restarts the round but leaves STUDY WORD flags intact —
+    // toggle the Study Word button off to clear a word's flag.
     if (teamMode) enterTeamMode(); else startQuiz();
   });
 

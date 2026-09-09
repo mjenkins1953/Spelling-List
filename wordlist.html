@@ -673,7 +673,7 @@
       <span id="rateVal">0.85&times;</span>
     </div>
     <div class="button-cluster">
-      <button class="reset-btn" id="resetBtn" type="button">Reset Answers</button>
+      <button class="reset-btn" id="resetBtn" type="button">Reset</button>
       <div class="practice-btn-stack">
         <button class="reset-btn" id="toggleWordsBtn" type="button">Show Word List</button>
         <button class="reset-btn" id="clearMarkedBtn" type="button">Clear Study Words</button>
@@ -726,7 +726,7 @@
     <div class="no-results" id="noResults">No words match your search.</div>
   </div>
 
-  <p class="sub" id="buildVersion" style="margin-top:8px; text-align:right; opacity:0.55; white-space:nowrap;">Build 2026-09-09-2244Z</p>
+  <p class="sub" id="buildVersion" style="margin-top:8px; text-align:right; opacity:0.55; white-space:nowrap;">Build 2026-09-09-2251Z</p>
 
 </div>
 
@@ -1349,6 +1349,8 @@
   thruInput.addEventListener('change', clampRangeInputs);
 
   resetBtn.addEventListener('click', () => {
+    // Reset only clears typed answers and scoring — Study Word flags are
+    // left intact (only "Clear Study Words" removes them).
     rows.forEach(row => {
       row.classList.remove('is-correct', 'is-incorrect');
       row.querySelector('.type-input').value = '';
