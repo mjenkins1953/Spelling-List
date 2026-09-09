@@ -103,7 +103,7 @@
 
   /* Keeps Reset Answers, Show Word List and Practice Missed Words together
      on one row (wrapping as a unit if the viewport is tight), with Clear
-     Marked stacked under Show Word List and Practice Marked Words under
+     Marked stacked under Show Word List and Practice Study Words under
      Practice Missed Words. align-items:flex-start lines the single Reset
      Answers button up with the top button of each stack. */
   .button-cluster{
@@ -676,11 +676,11 @@
       <button class="reset-btn" id="resetBtn" type="button">Reset Answers</button>
       <div class="practice-btn-stack">
         <button class="reset-btn" id="toggleWordsBtn" type="button">Show Word List</button>
-        <button class="reset-btn" id="clearMarkedBtn" type="button">Clear Marked</button>
+        <button class="reset-btn" id="clearMarkedBtn" type="button">Clear Study Words</button>
       </div>
       <div class="practice-btn-stack">
         <button class="reset-btn" id="practiceMissedBtn" type="button" disabled>Practice Missed Words</button>
-        <button class="reset-btn" id="practiceMarkedBtn" type="button">Practice Marked Words</button>
+        <button class="reset-btn" id="practiceMarkedBtn" type="button">Practice Study Words</button>
       </div>
     </div>
   </div>
@@ -726,7 +726,7 @@
     <div class="no-results" id="noResults">No words match your search.</div>
   </div>
 
-  <p class="sub" id="buildVersion" style="margin-top:8px; text-align:right; opacity:0.55; white-space:nowrap;">Build 2026-09-09-2240Z</p>
+  <p class="sub" id="buildVersion" style="margin-top:8px; text-align:right; opacity:0.55; white-space:nowrap;">Build 2026-09-09-2241Z</p>
 
 </div>
 
@@ -1369,7 +1369,7 @@
 
   practiceMarkedBtn.addEventListener('click', () => {
     markedOnly = !markedOnly;
-    practiceMarkedBtn.textContent = markedOnly ? 'Show All Words' : 'Practice Marked Words';
+    practiceMarkedBtn.textContent = markedOnly ? 'Show All Words' : 'Practice Study Words';
     applyFilters();
   });
 
@@ -1378,7 +1378,7 @@
     saveMarkedIds();
     if (markedOnly) {
       markedOnly = false;
-      practiceMarkedBtn.textContent = 'Practice Marked Words';
+      practiceMarkedBtn.textContent = 'Practice Study Words';
     }
     applyFilters();
   });
