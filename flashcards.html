@@ -860,7 +860,7 @@
       <span class="score-chip" id="percentChip">Correct %: 0.0%</span>
       <span class="score-chip" id="remainingChip">Remaining: 300</span>
     </div>
-    <p class="sub" id="buildVersion" style="margin:0; opacity:0.55; white-space:nowrap;">Build 2026-09-10-1319Z</p>
+    <p class="sub" id="buildVersion" style="margin:0; opacity:0.55; white-space:nowrap;">Build 2026-09-11-1921Z</p>
   </div>
 
   <div class="complete-panel" id="completePanel">
@@ -1093,6 +1093,7 @@
     quizCard.style.display = '';
     teamPool = teamRangeIndices();
     teamUsed.clear();
+    rememberAppliedRange();
     teamDrawWord();              // show the first random word right away
   }
 
@@ -1139,6 +1140,23 @@
     return { from, thru };
   }
 
+  // The From/Thru range actually in play for the current pool/deck, so a
+  // spurious "change" event on the number fields (a stray click on the
+  // spinner arrows, a scroll while one is focused, etc.) that leaves the
+  // range unchanged doesn't silently rebuild the pool and wipe the
+  // no-repeat tracking mid-round.
+  let lastAppliedFrom = null;
+  let lastAppliedThru = null;
+  function rememberAppliedRange() {
+    const { from, thru } = getValidatedRange();
+    lastAppliedFrom = from;
+    lastAppliedThru = thru;
+  }
+  function rangeActuallyChanged() {
+    const { from, thru } = getValidatedRange();
+    return from !== lastAppliedFrom || thru !== lastAppliedThru;
+  }
+
   function updateScoreboard() {
     correctChip.textContent = 'Correct: ' + correctCount;
     incorrectChip.textContent = 'Incorrect: ' + incorrectCount;
@@ -1162,6 +1180,7 @@
     missedWords = [];
     completePanel.classList.remove('show');
     quizCard.style.display = '';
+    rememberAppliedRange();
     updateScoreboard();
     loadNextWord();
   }
@@ -1610,8 +1629,16 @@
   // moves off the field (not on every keystroke, since a value like
   // "150" would otherwise reset three times as each digit is typed).
   // In TEAM PRACTICE this rebuilds the pool and restarts the cycle.
-  fromInput.addEventListener('change', () => { if (teamMode) enterTeamMode(); else startQuiz(); });
-  thruInput.addEventListener('change', () => { if (teamMode) enterTeamMode(); else startQuiz(); });
+  // Guarded by rangeActuallyChanged() so a spurious "change" event (a
+  // stray click on the number spinner, a scroll nudge while the field is
+  // focused) that leaves the range the same doesn't rebuild the pool and
+  // wipe no-repeat progress mid-round.
+  function onRangeInputChange() {
+    if (!rangeActuallyChanged()) return;
+    if (teamMode) enterTeamMode(); else startQuiz();
+  }
+  fromInput.addEventListener('change', onRangeInputChange);
+  thruInput.addEventListener('change', onRangeInputChange);
 
   function escapeHtml(str) {
     const div = document.createElement('div');
