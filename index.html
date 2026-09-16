@@ -216,11 +216,18 @@
       <span class="desc">One random word at a time</span>
       <span class="instructions-link" role="button" tabindex="0" data-modal="flashcards">Instructions</span>
     </a>
+
+    <a class="menu-card" href="typingpractice.html">
+      <svg class="icon" viewBox="0 0 24 24"><path d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-6.5l-3.6 3.2A1 1 0 0 1 6.5 19.4V17H6a2 2 0 0 1-2-2V6zm3 2v2h2V8H7zm4 0v2h2V8h-2zm4 0v2h2V8h-2zM7 12v2h6v-2H7z"/></svg>
+      <span class="label">Typing Practice</span>
+      <span class="desc">Hear it, then type each word 5 times</span>
+      <span class="instructions-link" role="button" tabindex="0" data-modal="typingpractice">Instructions</span>
+    </a>
   </div>
 
   <footer>Macomb Township Senior Spellers</footer>
 
-  <p id="buildVersion" style="margin:8px 0 0; font-family:'IBM Plex Mono', monospace; font-size:11px; color:#8892A0; text-align:center; opacity:0.55; white-space:nowrap;">Build 2026-09-11-1921Z</p>
+  <p id="buildVersion" style="margin:8px 0 0; font-family:'IBM Plex Mono', monospace; font-size:11px; color:#8892A0; text-align:center; opacity:0.55; white-space:nowrap;">Build 2026-09-16-1211Z</p>
 
 </div>
 
@@ -274,6 +281,22 @@
         <p>If you're stuck on a word, click the Next Word button near the top of the page to "pass" on that word. It will be returned to the pool and used again before you're finished.</p>
         <p>After you've typed the word in the Type It box, review and click the Next Word button near the bottom of the page to advance to the next random word.</p>
         <p>Your score will be tabulated at the bottom of the page.</p>
+        <p>That's it. Have Fun!!!</p>
+      `
+    },
+    typingpractice: {
+      title: 'Typing Practice Instructions',
+      body: `
+        <p><strong>Welcome to the Macomb Township Senior Spellers<br>Spelling Bee tools</strong></p>
+        <p>Use of this page is simple:</p>
+        <p>The word is shown for you, and you can click "Hear It" for a spoken version of it.</p>
+        <p>Type the word into the "Type It 1" box. As soon as you finish typing it, the cursor automatically jumps to "Type It 2," then "Type It 3," and so on through "Type It 5."</p>
+        <p>If all 5 boxes in a row are spelled correctly (or left blank), the row will turn green. If any box in the row is misspelled, the row will turn red.</p>
+        <p>Correct and Incorrect rows are tabulated at the top of the page along with how many words are remaining.</p>
+        <p><strong>Helpful Functions</strong></p>
+        <p>Click the Reset button to clear every box and start over.</p>
+        <p>Use the Speech rate slider to adjust the speed of the spoken word.</p>
+        <p>Use Search or the From/Thru range to focus on specific words.</p>
         <p>That's it. Have Fun!!!</p>
       `
     }
