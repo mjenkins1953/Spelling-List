@@ -884,7 +884,7 @@
       <span class="score-chip" id="percentChip">Correct %: 0.0%</span>
       <span class="score-chip" id="remainingChip">Remaining: 300</span>
     </div>
-    <p class="sub" id="buildVersion" style="margin:0; opacity:0.55; white-space:nowrap;">Build 2026-09-25-1500Z</p>
+    <p class="sub" id="buildVersion" style="margin:0; opacity:0.55; white-space:nowrap;">Build 2026-09-30-2231Z</p>
   </div>
 
   <div class="complete-panel" id="completePanel">
@@ -1025,6 +1025,7 @@
 
   // ---------- deck management ----------
   let deck = [];
+  let deckRange = null;   // range indices when the deck is a From/Thru round (no-repeat tracked)
   let deckPointer = 0;
   let correctCount = 0;
   let incorrectCount = 0;
@@ -1061,14 +1062,41 @@
     clearStudyWordsBtn.disabled = studyWordIds.size === 0;
   }
 
+  // ---------- NO-REPEAT tracking ----------
+  // 0-based indices of every word displayed in the current cycle, shared by
+  // Single and Team Practice and persisted to localStorage so it survives
+  // reloads, Reset, Play Again, and mode switches. A word isn't drawn again
+  // until every word in the From/Thru range has been displayed once; then
+  // the range's flags clear and a fresh cycle begins.
+  const SHOWN_WORDS_KEY = 'spellingQuiz.flashcardsShown';
+  let shownWords;
+  try {
+    shownWords = new Set(JSON.parse(localStorage.getItem(SHOWN_WORDS_KEY) || '[]'));
+  } catch (e) {
+    shownWords = new Set();
+  }
+
+  function saveShownWords() {
+    try {
+      localStorage.setItem(SHOWN_WORDS_KEY, JSON.stringify([...shownWords]));
+    } catch (e) { /* storage unavailable — tracking lasts for this visit only */ }
+  }
+
+  // Flags a word as displayed. If it was already flagged, every word in the
+  // range has been shown (unshown words are always drawn first), so the
+  // range's flags clear and this word opens the new cycle.
+  function markShown(idx, rangeIndices) {
+    if (shownWords.has(idx)) rangeIndices.forEach(i => shownWords.delete(i));
+    shownWords.add(idx);
+    saveShownWords();
+  }
+
   // ---------- TEAM PRACTICE mode ----------
   // A caller-led mode: no typing, no scoring. Each "Next Word" click draws
-  // a random word from the From/Thru range and flags it so it won't come
-  // up again until every other word in the range has been shown; once the
-  // last one is drawn, the flags clear and a fresh cycle begins.
+  // a random word from the From/Thru range that hasn't been shown yet this
+  // cycle (see NO-REPEAT tracking above).
   let teamMode = false;
   let teamPool = [];            // 0-based word indices in the current range
-  const teamUsed = new Set();   // indices already shown this cycle
 
   function teamRangeIndices() {
     const { from, thru } = getValidatedRange();
@@ -1078,18 +1106,15 @@
   }
 
   function updateTeamRemaining() {
-    remainingChip.textContent = 'Remaining: ' + (teamPool.length - teamUsed.size);
+    remainingChip.textContent = 'Remaining: ' + teamPool.filter(i => !shownWords.has(i)).length;
   }
 
   function teamDrawWord() {
-    let candidates = teamPool.filter(i => !teamUsed.has(i));
-    if (candidates.length === 0) {
-      // Last word of the cycle was already drawn — start over.
-      teamUsed.clear();
-      candidates = teamPool.slice();
-    }
+    let candidates = teamPool.filter(i => !shownWords.has(i));
+    // Every word in the range was already shown — markShown starts a new cycle.
+    if (candidates.length === 0) candidates = teamPool;
     const idx = candidates[Math.floor(Math.random() * candidates.length)];
-    teamUsed.add(idx);
+    markShown(idx, teamPool);
 
     if (window.speechSynthesis) window.speechSynthesis.cancel();
     currentItem = words[idx];
@@ -1116,7 +1141,6 @@
     completePanel.classList.remove('show');
     quizCard.style.display = '';
     teamPool = teamRangeIndices();
-    teamUsed.clear();
     rememberAppliedRange();
     teamDrawWord();              // show the first random word right away
   }
@@ -1244,7 +1268,12 @@
 
   function startQuiz() {
     const { from, thru } = getValidatedRange();
-    deck = shuffledRangeIndices(from, thru);
+    // Words not yet shown this cycle come first (shuffled); already-shown
+    // ones only follow once those are used up, which starts a new cycle.
+    const rangeIdx = shuffledRangeIndices(from, thru);
+    deck = rangeIdx.filter(i => !shownWords.has(i))
+      .concat(rangeIdx.filter(i => shownWords.has(i)));
+    deckRange = rangeIdx;
     deckPointer = 0;
     correctCount = 0;
     incorrectCount = 0;
@@ -1273,6 +1302,7 @@
     }
 
     deck = shuffleArray(Array.from(studyWordIds, id => id - 1));
+    deckRange = null;            // study rounds don't affect no-repeat tracking
     deckPointer = 0;
     correctCount = 0;
     incorrectCount = 0;
@@ -1379,6 +1409,7 @@
     currentItem = words[idx];
     currentWordId = idx + 1; // Word ID is 1-based position in the master list
     deckPointer++;
+    if (deckRange) markShown(idx, deckRange);
     answered = false;
     locked = false;
 
@@ -1402,13 +1433,10 @@
     if (completePanel.classList.contains('show') || !currentItem) return;
 
     if (!answered) {
-      // Put the skipped word back into the pool at a random position
-      // among the not-yet-drawn slots, so it can come up again later
-      // rather than being lost for the rest of the round.
-      const wordIndex = currentWordId - 1; // back to 0-based index
-      const remainingSlots = deck.length - deckPointer;
-      const insertPos = deckPointer + Math.floor(Math.random() * (remainingSlots + 1));
-      deck.splice(insertPos, 0, wordIndex);
+      // Put the skipped word at the very end of the deck, so it can still
+      // be answered this round but never repeats before every other word
+      // has been shown.
+      deck.push(currentWordId - 1); // back to 0-based index
     }
 
     loadNextWord();
