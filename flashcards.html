@@ -203,7 +203,7 @@
   }
 
   /* The .controls column stacks two horizontal bands:
-     line 1 = [mode toggle / Practice Missed / Next Word] .... [From-Thru / Reset]
+     line 1 = [mode toggle / Practice Missed / Practice Study] .... [From-Thru / Reset]
      line 2 = [Show Word] [Auto Hear] [Speech rate slider] */
   .ctrl-line{
     display:flex;
@@ -213,7 +213,7 @@
   }
   .ctrl-line-split{
     /* No wrap: the whole point of this row is Practice Missed Words /
-       Practice Study Words / Next Word ... From-Thru / Reset staying on
+       Practice Study Words ... From-Thru / Reset staying on
        one line. The buttons below are sized tightly enough to fit. */
     flex-wrap: nowrap;
     justify-content: space-between;
@@ -348,6 +348,23 @@
     display: none;
   }
   .support-note.show{ display:block; }
+
+  /* The big Next Word button sits centered just below the card; it's
+     hidden along with the card once the round-complete panel shows. */
+  .skip-row{
+    display: flex;
+    justify-content: center;
+    margin-top: 16px;
+  }
+  body:has(#completePanel.show) .skip-row{ display: none; }
+  #skipWordBtn{
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    padding: 14px 48px;
+    min-width: 260px;
+    border-radius: 6px;
+  }
 
   .card{
     background: var(--card-bg);
@@ -811,7 +828,6 @@
         <button class="reset-btn" id="modeToggleBtn" type="button">Team Practice</button>
         <button class="reset-btn" id="practiceMissedBtn" type="button" disabled>Practice Missed Words</button>
         <button class="reset-btn" id="practiceStudyBtn" type="button" disabled>Practice Study Words</button>
-        <button class="reset-btn" id="skipWordBtn" type="button">Next Word</button>
       </div>
       <div class="ctrl-group">
         <div class="range-row">
@@ -878,6 +894,10 @@
 
   </div>
 
+  <div class="skip-row">
+    <button class="reset-btn" id="skipWordBtn" type="button">Next Word</button>
+  </div>
+
   <div class="bottom-row">
     <div class="scoreboard">
       <span class="score-chip correct" id="correctChip">Correct: 0</span>
@@ -886,7 +906,7 @@
       <span class="score-chip" id="remainingChip">Remaining: 300</span>
       <span class="score-chip" id="cycleChip" title="Words in the From/Thru range not yet shown this cycle">Cycle Left: 300</span>
     </div>
-    <p class="sub" id="buildVersion" style="margin:0; opacity:0.55; white-space:nowrap;">Build 2026-09-30-2240Z</p>
+    <p class="sub" id="buildVersion" style="margin:0; opacity:0.55; white-space:nowrap;">Build 2026-09-30-2242Z</p>
   </div>
 
   <div class="complete-panel" id="completePanel">
