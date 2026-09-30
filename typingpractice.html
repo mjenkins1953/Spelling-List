@@ -393,6 +393,7 @@
       <span class="score-chip correct" id="correctChip">Correct: 0</span>
       <span class="score-chip incorrect" id="incorrectChip">Incorrect: 0</span>
       <span class="score-chip" id="remainingChip">Remaining: 300</span>
+      <span class="score-chip" id="cycleChip" title="Rows in the From/Thru range with nothing typed yet">Cycle Left: 300</span>
     </div>
     <span class="result-count" id="resultCount"></span>
     <button class="reset-btn config-toggle-btn" id="configToggleBtn" type="button">Hide Configuration</button>
@@ -427,7 +428,7 @@
     <div class="no-results" id="noResults">No words match your search.</div>
   </div>
 
-  <p class="sub" id="buildVersion" style="margin-top:8px; text-align:right; opacity:0.55; white-space:nowrap;">Build 2026-09-30-2238Z</p>
+  <p class="sub" id="buildVersion" style="margin-top:8px; text-align:right; opacity:0.55; white-space:nowrap;">Build 2026-09-30-2240Z</p>
 
 </div>
 
@@ -450,6 +451,7 @@
   const correctChip = document.getElementById('correctChip');
   const incorrectChip = document.getElementById('incorrectChip');
   const remainingChip = document.getElementById('remainingChip');
+  const cycleChip = document.getElementById('cycleChip');
 
   const speechSupported = 'speechSynthesis' in window;
   if (!speechSupported) supportNote.classList.add('show');
@@ -567,6 +569,20 @@
     correctChip.textContent = 'Correct: ' + correct;
     incorrectChip.textContent = 'Incorrect: ' + incorrect;
     remainingChip.textContent = 'Remaining: ' + remaining;
+    updateCycleChip();
+  }
+
+  // Rows in the From/Thru range that haven't had anything typed into any
+  // of their Type It boxes yet.
+  function updateCycleChip() {
+    const range = getRange();
+    let left = 0;
+    rows.forEach((row, i) => {
+      const id = i + 1;
+      if (range && (id < range.lo || id > range.hi)) return;
+      if (rowInputs[i].every(inp => inp.value.trim() === '')) left++;
+    });
+    cycleChip.textContent = 'Cycle Left: ' + left;
   }
 
   // Evaluates all 5 Type It boxes for a row: each box is judged correct,
@@ -653,6 +669,7 @@
       // Auto-advances as soon as the person has typed as many characters as
       // the word contains, so they never have to press Enter mid-drill.
       inp.addEventListener('input', () => {
+        updateCycleChip();
         if (inp.value.trim().length >= targetLen) advance();
       });
 
@@ -714,6 +731,7 @@
       if (match) visible++;
     });
     updateCount(visible);
+    updateCycleChip();
   }
 
   searchInput.addEventListener('input', applyFilters);
