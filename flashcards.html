@@ -365,6 +365,7 @@
     min-width: 260px;
     border-radius: 6px;
   }
+  #skipWordBtn:focus-visible{ outline: 2px solid var(--accent-hover); outline-offset: 2px; }
 
   .card{
     background: var(--card-bg);
@@ -479,11 +480,7 @@
   .phon-row .word-id-top{
     display: none;
   }
-  /* The mic and Next Word buttons live together on the right of this row.
-     Grouping them in their own flex container (rather than margin-left:
-     auto on the mic itself) keeps them snug against each other — and the
-     pair pinned to the right edge — whether or not the mic happens to be
-     hidden (it is, in Team Practice). */
+  /* The mic lives on the right of this row. */
   .phon-row-right{
     display: flex;
     align-items: center;
@@ -645,28 +642,6 @@
   .is-incorrect .correct-cell .flag{ background: var(--incorrect-border); }
   .is-correct .correct-cell .spelling-text{ color: var(--correct-border); }
   .is-incorrect .correct-cell .spelling-text{ color: var(--incorrect-border); }
-
-  .next-btn{
-    flex: none;
-    height: 32px;
-    padding: 0 16px;
-    align-items: center;
-    justify-content: center;
-    background: var(--header-bg);
-    color: #fff;
-    border: none;
-    border-radius: 5px;
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.03em;
-    text-transform: uppercase;
-    white-space: nowrap;
-    cursor: pointer;
-    display: none;
-  }
-  .next-btn:hover{ background: #1c2734; }
-  .next-btn.show{ display: inline-flex; }
 
   .complete-panel{
     background: var(--card-bg);
@@ -873,7 +848,6 @@
         <button class="mic-btn" id="micBtn" type="button" aria-label="Say the spelling">
           <svg viewBox="0 0 24 24"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-2.08A7 7 0 0 0 19 12h-2z"/></svg>
         </button>
-        <button class="next-btn" id="nextBtn" type="button">Next Word</button>
       </div>
     </div>
 
@@ -906,7 +880,7 @@
       <span class="score-chip" id="remainingChip">Remaining: 300</span>
       <span class="score-chip" id="cycleChip" title="Words in the From/Thru range not yet shown this cycle">Cycle Left: 300</span>
     </div>
-    <p class="sub" id="buildVersion" style="margin:0; opacity:0.55; white-space:nowrap;">Build 2026-09-30-2242Z</p>
+    <p class="sub" id="buildVersion" style="margin:0; opacity:0.55; white-space:nowrap;">Build 2026-09-30-2251Z</p>
   </div>
 
   <div class="complete-panel" id="completePanel">
@@ -998,7 +972,6 @@
   const correctCell = document.getElementById('correctCell');
   const fxContainer = document.getElementById('fxContainer');
   const fireworksOverlay = document.getElementById('fireworksOverlay');
-  const nextBtn = document.getElementById('nextBtn');
   const completePanel = document.getElementById('completePanel');
   const finalTally = document.getElementById('finalTally');
   const completeMissedWrap = document.getElementById('completeMissedWrap');
@@ -1159,7 +1132,6 @@
     phonText.textContent = currentItem.phon;
     wordIdTop.textContent = currentWordId;
     quizCard.classList.remove('is-correct', 'is-incorrect');
-    nextBtn.classList.remove('show');
     updateWordHint();           // respects Show Word / Hide Word
     updateStudyWordUI();
     updateTeamRemaining();
@@ -1454,7 +1426,6 @@
     typeInput.value = '';
     typeInput.disabled = false;
     quizCard.classList.remove('is-correct', 'is-incorrect');
-    nextBtn.classList.remove('show');
 
     updateWordHint();
     updateStudyWordUI();
@@ -1518,14 +1489,14 @@
     }
 
     renderCorrectCell(isCorrect);
-    nextBtn.classList.add('show');
     updateScoreboard();
-    // Defer the focus shift: moving focus to Next Word inside the same
+    // Defer the focus shift: moving focus to the big Next Word button (below
+    // the card) inside the same
     // Enter keydown that just checked the answer can cause the browser to
     // treat the same key-release as also activating the newly-focused
     // button, silently skipping straight past the revealed answer.
     if (isCorrect) {
-      setTimeout(() => nextBtn.focus(), 50);
+      setTimeout(() => skipWordBtn.focus(), 50);
     } else {
       setTimeout(() => { typeInput.focus(); typeInput.select(); }, 50);
     }
@@ -1548,7 +1519,7 @@
       locked = true;
       typeInput.disabled = true;
       fireFireworks();
-      setTimeout(() => nextBtn.focus(), 50);
+      setTimeout(() => skipWordBtn.focus(), 50);
     } else {
       showSadFace();
       setTimeout(() => { typeInput.focus(); typeInput.select(); }, 50);
@@ -1720,12 +1691,6 @@
       speakWord(currentItem.word);
     }
   }
-
-  nextBtn.addEventListener('click', () => {
-    if (teamMode) { teamDrawWord(); speakAfterAdvance(); return; }
-    loadNextWord();
-    speakAfterAdvance();
-  });
 
   skipWordBtn.addEventListener('click', () => {
     if (teamMode) { teamDrawWord(); speakAfterAdvance(); return; }
@@ -2030,18 +1995,6 @@
     if (currentItem) speakWord(currentItem.word);
   });
   hearBtn.disabled = !speechSupported;
-
-  // Keep the Next Word button exactly as wide as the Hear It button so the
-  // two read as a matched pair on the same row.
-  function syncNextBtnWidth() {
-    const w = hearBtn.offsetWidth;
-    if (w) nextBtn.style.width = w + 'px';
-  }
-  syncNextBtnWidth();
-  if (document.fonts && document.fonts.ready) {
-    document.fonts.ready.then(syncNextBtnWidth);
-  }
-  window.addEventListener('resize', syncNextBtnWidth);
 
   startQuiz();
 </script>
