@@ -787,7 +787,8 @@
   body.team-mode #micBtn{ display: none; }
   body.team-mode #correctChip,
   body.team-mode #incorrectChip,
-  body.team-mode #percentChip{ display: none; }
+  body.team-mode #percentChip,
+  body.team-mode #cycleChip{ display: none; }   /* Remaining already counts the cycle there */
   body.team-mode #timerRow{ display: none; }
 </style>
 </head>
@@ -883,8 +884,9 @@
       <button class="score-chip incorrect" id="incorrectChip" type="button">Incorrect: 0</button>
       <span class="score-chip" id="percentChip">Correct %: 0.0%</span>
       <span class="score-chip" id="remainingChip">Remaining: 300</span>
+      <span class="score-chip" id="cycleChip" title="Words in the From/Thru range not yet shown this cycle">Cycle Left: 300</span>
     </div>
-    <p class="sub" id="buildVersion" style="margin:0; opacity:0.55; white-space:nowrap;">Build 2026-09-30-2234Z</p>
+    <p class="sub" id="buildVersion" style="margin:0; opacity:0.55; white-space:nowrap;">Build 2026-09-30-2236Z</p>
   </div>
 
   <div class="complete-panel" id="completePanel">
@@ -963,6 +965,7 @@
   const incorrectChip = document.getElementById('incorrectChip');
   const percentChip = document.getElementById('percentChip');
   const remainingChip = document.getElementById('remainingChip');
+  const cycleChip = document.getElementById('cycleChip');
 
   const quizCard = document.getElementById('quizCard');
   const defText = document.getElementById('defText');
@@ -1089,6 +1092,17 @@
     if (shownWords.has(idx)) rangeIndices.forEach(i => shownWords.delete(i));
     shownWords.add(idx);
     saveShownWords();
+    updateCycleChip();
+  }
+
+  // Words in the applied From/Thru range not yet shown this cycle.
+  function updateCycleChip() {
+    if (lastAppliedFrom === null) return;
+    let left = 0;
+    for (let id = lastAppliedFrom; id <= lastAppliedThru; id++) {
+      if (!shownWords.has(id - 1)) left++;
+    }
+    cycleChip.textContent = 'Cycle Left: ' + left;
   }
 
   // ---------- TEAM PRACTICE mode ----------
@@ -1199,6 +1213,7 @@
     const { from, thru } = getValidatedRange();
     lastAppliedFrom = from;
     lastAppliedThru = thru;
+    updateCycleChip();
   }
   function rangeActuallyChanged() {
     const { from, thru } = getValidatedRange();
