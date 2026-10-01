@@ -883,7 +883,7 @@
       <span class="score-chip" id="remainingChip">Remaining: 300</span>
       <span class="score-chip" id="cycleChip" title="Words in the From/Thru range not yet shown this cycle">Cycle Left: 300</span>
     </div>
-    <p class="sub" id="buildVersion" style="margin:0; opacity:0.55; white-space:nowrap;">Build 2026-10-01-1201Z</p>
+    <p class="sub" id="buildVersion" style="margin:0; opacity:0.55; white-space:nowrap;">Build 2026-10-01-1202Z</p>
   </div>
 
   <div class="complete-panel" id="completePanel">
@@ -1569,7 +1569,11 @@
     recognition.lang = 'en-US';
     recognition.maxAlternatives = 1;
     recognition.continuous = !isIOS;
-    recognition.interimResults = !isIOS;
+    // Interim results on iOS too: without them, letters only appear once
+    // Safari decides a phrase is finished (several seconds late), and the
+    // silence timer — which only resets when a result arrives — runs out
+    // mid-word when spelling slowly.
+    recognition.interimResults = true;
 
     const session = { recognition, shouldStop: false };
     activeRecognition = session;
@@ -1578,6 +1582,7 @@
     typeInput.value = '';
 
     let finalText = '';
+    let pendingInterim = '';   // latest not-yet-final text, kept across iOS restarts
     let silenceTimer = null;
     let handled = false;
 
@@ -1597,7 +1602,7 @@
     // to the recognizer can easily take longer than 1-2 seconds, so a
     // short timer here would finalize with an empty answer before the
     // first letter even comes back.
-    const SILENCE_TIMEOUT_MS = isIOS ? 3200 : 1200;
+    const SILENCE_TIMEOUT_MS = isIOS ? 4000 : 1200;
     const INITIAL_TIMEOUT_MS = isIOS ? 6000 : 4500;
     let gotFirstResult = false;
 
@@ -1654,6 +1659,7 @@
           interimText += chunk;
         }
       }
+      pendingInterim = interimText;
       typeInput.value = finalText + interimText;
     };
 
@@ -1677,6 +1683,14 @@
     recognition.onend = () => {
       console.log('[mic] onend fired. shouldStop:', session.shouldStop, 'handled:', handled);
       if (activeRecognition === session) activeRecognition = null;
+
+      // iOS can end a session without ever making its last interim text
+      // final — keep it so the restart below doesn't drop those letters.
+      if (pendingInterim) {
+        console.log('[mic] keeping unfinalized interim:', JSON.stringify(pendingInterim));
+        finalText += pendingInterim;
+        pendingInterim = '';
+      }
 
       if (session.shouldStop || handled) {
         finalize();
